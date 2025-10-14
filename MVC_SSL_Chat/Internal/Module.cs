@@ -24,7 +24,8 @@ namespace MVC_SSL_Chat.Internal
             HashicorpProvider hashicorpProvider, 
             NonSensitiveSettingsProvider nonSensitiveDataProvider )
         {
-            serviceCollection.AddSingleton<IBufferingService, BufferingService>();
+            serviceCollection.AddSingleton<IBufferService, BufferService>();
+            serviceCollection.AddHostedService<BufferingWorker>();
             serviceCollection.AddSingleton<IChatMessageDispatcher, ChatMessageDispatcher>();
             serviceCollection.AddSingleton<IClock, SystemClock>();
             serviceCollection.AddSingleton<ISensitiveDataProvider>( hashicorpProvider );
