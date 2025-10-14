@@ -15,7 +15,7 @@ namespace MVC_SSL_Chat.Controllers
     /// </summary>
     /// <param name="loggerFactory">The logger factory.</param>
     /// <param name="userManager">The user manager.</param>
-    /// <param name="bufferingService">The buffering service.</param>
+    /// <param name="bufferService">The buffering service.</param>
     /// <param name="dbService">The service for the database interaction.</param>
     /// <param name="storageSettingsProvider">The provider of the storage settings.</param>
     /// <param name="chatMessageDispatcher">The dispatcher of the messages sent while the application is working.</param>
@@ -23,7 +23,7 @@ namespace MVC_SSL_Chat.Controllers
     [Route("chat") ]
     public class ChatController( ILoggerFactory loggerFactory,
         UserManager<ChatUser> userManager,
-        IBufferingService bufferingService, 
+        IBufferService bufferService, 
         IDbService dbService, 
         IStorageSettingsProvider storageSettingsProvider,
         IChatMessageDispatcher chatMessageDispatcher,
@@ -33,7 +33,7 @@ namespace MVC_SSL_Chat.Controllers
 
         private readonly UserManager<ChatUser> _userManager = userManager;
 
-        private readonly IBufferingService _bufferingService = bufferingService;
+        private readonly IBufferService _bufferService = bufferService;
 
         private readonly IChatMessageDispatcher _chatMessageDispatcher = chatMessageDispatcher;
         
@@ -72,7 +72,7 @@ namespace MVC_SSL_Chat.Controllers
                 {
                     await Response.WriteAsync( ": keep-alive\n\n" );
                     await Response.Body.FlushAsync();
-                    await Task.Delay( _storageSettingsProvider.RefreshingFrequencyInMilliseconds, clientDisconnectedToken ); // every 15 seconds
+                    await Task.Delay( _storageSettingsProvider.RefreshingFrequencyInMilliseconds, clientDisconnectedToken );
                 }
             }
             catch (TaskCanceledException)
@@ -149,7 +149,7 @@ namespace MVC_SSL_Chat.Controllers
                 receivedShell.AuthorName = user!.UserName;
                 _chatMessageDispatcher.Dispatch( receivedShell );
 
-                _bufferingService.Append( receivedShell.ToMessageModel( user! ) );
+                _bufferService.Append( receivedShell.ToMessageModel( user! ) );
                 
                 _logger.LogTrace( "The received chat message is handled successfully." );
                 
