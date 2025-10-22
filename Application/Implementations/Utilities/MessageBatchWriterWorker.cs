@@ -1,28 +1,30 @@
-﻿using MVC_SSL_Chat.Internal.Interfaces;
+﻿using Application.Interfaces.Utilities;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Storage.Contracts;
 
-namespace MVC_SSL_Chat.Internal.Implementations
+namespace Application.Implementations.Utilities
 {
-    public class BufferingWorker : BackgroundService
+    internal class MessageBatchWriterWorker : BackgroundService
     {
         private readonly ILogger _logger;
-        private readonly IBufferService _bufferService;
+        private readonly IMessageBatchWriterService _bufferService;
         private readonly int _savingFrequencyInMilliseconds;
 
-        public BufferingWorker( ILoggerFactory loggerFactory, 
-            IBufferService bufferService, 
+        public MessageBatchWriterWorker( ILoggerFactory loggerFactory,
+            IMessageBatchWriterService bufferService,
             IStorageSettingsProvider settingsProvider )
         {
-            _logger = loggerFactory.CreateLogger<BufferingWorker>();
+            _logger = loggerFactory.CreateLogger<MessageBatchWriterWorker>();
             _bufferService = bufferService;
             _savingFrequencyInMilliseconds = settingsProvider.SavingFrequencyInMilliseconds;
         }
 
         protected override async Task ExecuteAsync( CancellationToken cancellationToken )
         {
-            _logger.LogInformation( $"Buffering started, saving period in milliseconds:{ _savingFrequencyInMilliseconds }." );
+            _logger.LogInformation( $"Buffering started, saving period in milliseconds:{_savingFrequencyInMilliseconds}." );
 
-            while( !cancellationToken.IsCancellationRequested )
+            while(!cancellationToken.IsCancellationRequested)
             {
                 await _bufferService.FlushAsync();
 

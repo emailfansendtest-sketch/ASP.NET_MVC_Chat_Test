@@ -1,4 +1,4 @@
-﻿namespace MVC_SSL_Chat.Internal.Interfaces
+﻿namespace Application.Interfaces.Utilities
 {
     /// <summary>
     /// The interface of the current time provider.

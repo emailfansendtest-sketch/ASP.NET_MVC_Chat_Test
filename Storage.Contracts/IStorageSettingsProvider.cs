@@ -2,6 +2,7 @@
 namespace Storage.Contracts
 {
     /// <summary>
+    /// TODO must be replaced by the *Options
     /// The interface for provider of the settings used by the database service.
     /// </summary>
     public interface IStorageSettingsProvider

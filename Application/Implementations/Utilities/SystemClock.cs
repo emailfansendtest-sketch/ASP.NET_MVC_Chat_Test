@@ -1,6 +1,6 @@
-﻿using MVC_SSL_Chat.Internal.Interfaces;
+﻿using Application.Interfaces.Utilities;
 
-namespace MVC_SSL_Chat.Internal.Implementations
+namespace Application.Implementations.Utilities
 {
     /// <summary>
     /// The implementation of the current time provider.

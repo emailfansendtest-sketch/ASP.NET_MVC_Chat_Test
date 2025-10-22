@@ -1,6 +1,7 @@
 ﻿using DomainModels;
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 using Storage.Contracts;
 
@@ -9,9 +10,9 @@ namespace Storage
     /// <summary>
     /// The implementation of the service used for the database access operations.
     /// </summary>
-    internal class DbService( ILoggerFactory loggerFactory, IChatDbContextFactory dbContextFactory ) : IDbService
+    internal class DbService( ILoggerFactory loggerFactory, IDbContextFactory<ChatDbContext> dbContextFactory ) : IDbService
     {
-        private readonly IChatDbContextFactory _dbContextFactory = dbContextFactory;
+        private readonly IDbContextFactory<ChatDbContext> _dbContextFactory = dbContextFactory;
         private readonly ILogger _logger = loggerFactory.CreateLogger( nameof( DbService ) );
 
         /// <inheritdoc />
@@ -20,7 +21,7 @@ namespace Storage
             _logger.LogTrace( $"Getting the messages for the period from { from } to { to }." );
             try
             {
-                using var storageContext = _dbContextFactory.Create();
+                using var storageContext = _dbContextFactory.CreateDbContext();
                 await using( storageContext.ConfigureAwait( false ) )
                 {
                     var result = await storageContext.ChatMessages.Include( m => m.Author )
@@ -48,7 +49,7 @@ namespace Storage
 
             try
             {
-                using var storageContext = _dbContextFactory.Create();
+                using var storageContext = _dbContextFactory.CreateDbContext();
 
                 await using ( storageContext.ConfigureAwait( false ) )
                 {

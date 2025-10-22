@@ -8,7 +8,8 @@ using SecuritySupplements;
 using SecuritySupplements.HashicorpVault;
 using System.Reflection;
 using NLog.Extensions.Logging;
-
+using Application.Interfaces.Streaming;
+using Application.DI;
 internal class Program
 {
     public static async Task Main( string[] args )
@@ -70,6 +71,8 @@ internal class Program
         // Add services to the container.
         builder.Services.AddControllersWithViews();
         builder.Services.AddImplementations( vaultProvider, nonSensitiveDataProvider );
+        builder.Services.AddSingleton<IMessageStreamWriterFactory, MessageStreamWriterFactory>();
+        builder.AddApplicationLayer();
 
         var app = builder.Build();
 

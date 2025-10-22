@@ -1,6 +1,4 @@
-﻿using MVC_SSL_Chat.Internal.Implementations;
-using MVC_SSL_Chat.Internal.Interfaces;
-using Email;
+﻿using Email;
 using Storage;
 using SecuritySupplements;
 using SecuritySupplements.Contracts;
@@ -24,10 +22,6 @@ namespace MVC_SSL_Chat.Internal
             HashicorpProvider hashicorpProvider, 
             NonSensitiveSettingsProvider nonSensitiveDataProvider )
         {
-            serviceCollection.AddSingleton<IBufferService, BufferService>();
-            serviceCollection.AddHostedService<BufferingWorker>();
-            serviceCollection.AddSingleton<IChatMessageDispatcher, ChatMessageDispatcher>();
-            serviceCollection.AddSingleton<IClock, SystemClock>();
             serviceCollection.AddSingleton<ISensitiveDataProvider>( hashicorpProvider );
             serviceCollection.AddSingleton<IStorageSettingsProvider>( nonSensitiveDataProvider );
             serviceCollection.AddSingleton<IReaderSettingsProvider>( nonSensitiveDataProvider );

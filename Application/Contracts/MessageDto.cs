@@ -1,17 +1,12 @@
 ﻿using DomainModels;
 
-namespace MVC_SSL_Chat.Models
+namespace Application.Contracts
 {
     /// <summary>
     /// The MVC model of the message sent by the chat user.
     /// </summary>
-    public class MessageModel
+    public class MessageDto
     {
-        /// <summary>
-        /// The primary database key for the message.
-        /// </summary>
-        public Guid MessageId { get; set; }
-
         /// <summary>
         /// The text content of the message.
         /// </summary>

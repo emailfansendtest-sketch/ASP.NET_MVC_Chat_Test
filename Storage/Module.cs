@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Storage.Contracts;
 using SecuritySupplements.Contracts;
+using System.Reflection;
 
 namespace Storage
 {
@@ -20,11 +21,14 @@ namespace Storage
         public static IServiceCollection AddStorageImplementations( 
             this IServiceCollection serviceCollection, ISensitiveDataProvider sensitiveDataProvider )
         {
-            serviceCollection.AddDbContext<ChatDbContext>(
-                options => options.UseNpgsql( sensitiveDataProvider.DatabaseConnectionString ) );
+            serviceCollection.AddDbContextFactory<ChatDbContext>(
+                options => options.UseNpgsql( sensitiveDataProvider.DatabaseConnectionString,
+                    b => b.MigrationsAssembly( Assembly.GetExecutingAssembly().GetName().Name ) ) );
+            //serviceCollection.AddDbContext<ChatDbContext>(
+            //    options => options.UseNpgsql( sensitiveDataProvider.DatabaseConnectionString ) );
             serviceCollection.AddDefaultIdentity<ChatUser>( 
                 options => options.SignIn.RequireConfirmedAccount = true ).AddEntityFrameworkStores<ChatDbContext>();
-            serviceCollection.AddSingleton<IChatDbContextFactory, ChatDbContextFactory>();
+            //serviceCollection.AddSingleton<IChatDbContextFactory, ChatDbContextFactory>();
             serviceCollection.AddSingleton<IDbService, DbService>();
 
             return serviceCollection;

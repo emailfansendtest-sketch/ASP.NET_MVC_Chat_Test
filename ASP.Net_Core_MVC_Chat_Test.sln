@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecuritySupplements", "Secu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Email", "Email\Email.csproj", "{FF3136C7-073B-482A-A478-77191B5120C5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "Application\Application.csproj", "{6407E397-9BE9-4811-898E-D04C579B4CC6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +61,10 @@ Global
 		{FF3136C7-073B-482A-A478-77191B5120C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FF3136C7-073B-482A-A478-77191B5120C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FF3136C7-073B-482A-A478-77191B5120C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6407E397-9BE9-4811-898E-D04C579B4CC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6407E397-9BE9-4811-898E-D04C579B4CC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6407E397-9BE9-4811-898E-D04C579B4CC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6407E397-9BE9-4811-898E-D04C579B4CC6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -71,6 +77,7 @@ Global
 		{457A53A4-6377-4493-BC34-067482A0803F} = {8AA8F253-AC35-4ACA-B007-70CADA8C4027}
 		{257FE93B-9F07-4DC9-BAED-9BF2B5BF06E3} = {D7E1D59D-AD71-4585-B461-1F9DA4270765}
 		{FF3136C7-073B-482A-A478-77191B5120C5} = {D7E1D59D-AD71-4585-B461-1F9DA4270765}
+		{6407E397-9BE9-4811-898E-D04C579B4CC6} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1D2FDCC1-23C3-49D0-B061-85449C4A0EA9}

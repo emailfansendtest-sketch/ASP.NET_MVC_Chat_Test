@@ -1,14 +1,19 @@
-﻿using MVC_SSL_Chat.Internal.Interfaces;
-using MVC_SSL_Chat.Models;
+﻿using Application.Contracts;
+using Application.Interfaces.Utilities;
 using Storage.Contracts;
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace MVC_SSL_Chat.Internal.Implementations
+namespace Application.Implementations.Utilities
 {
-    public class BufferService : IBufferService
+    internal class MessageBatchWriterService : IMessageBatchWriterService
     {
-        private ConcurrentBag<MessageModel> _mainBuffer = new();
-        private ConcurrentBag<MessageModel> _spareBuffer = new();
+        private ConcurrentBag<MessageDto> _mainBuffer = new();
+        private ConcurrentBag<MessageDto> _spareBuffer = new();
 
         private readonly ReaderWriterLockSlim _lock = new();
         private readonly IDbService _dbService;
@@ -19,13 +24,13 @@ namespace MVC_SSL_Chat.Internal.Implementations
         /// The constructor.
         /// </summary>
         /// <param name="dbService">The database service.</param>
-        public BufferService( IDbService dbService )
+        public MessageBatchWriterService( IDbService dbService )
         {
             _dbService = dbService;
         }
 
         /// <inheritdoc />
-        public void Append( MessageModel message )
+        public void Append( MessageDto message )
         {
             bool readerLockTaken = false;
 
@@ -75,11 +80,12 @@ namespace MVC_SSL_Chat.Internal.Implementations
             Interlocked.Exchange( ref _flushProgressIndicator, 0 );
         }
 
-        private async Task SaveMessagesAsync( IEnumerable<MessageModel> messages )
+        private async Task SaveMessagesAsync( IEnumerable<MessageDto> messages )
         {
             var newMessages = messages.Select( m => m.ToDatabaseEntity() ).ToArray();
 
             await _dbService.SaveChangesAsync( newMessages );
         }
+
     }
 }
