@@ -1,20 +1,22 @@
 using MVC_SSL_Chat.Internal;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting.Internal;
-using Storage;
-using SecuritySupplements.Contracts;
-using SecuritySupplements;
-using SecuritySupplements.HashicorpVault;
-using System.Reflection;
+using SecuritySupplements.DI;
+using Storage.DI;
+using Email;
 using NLog.Extensions.Logging;
 using Application.Interfaces.Streaming;
 using Application.DI;
+using MVC_SSL_Chat.Middleware;
+using SecuritySupplements;
+using SecuritySupplements.Contracts;
+using Storage.Contracts;
+using MVC_SSL_Chat.HealthCheck;
 internal class Program
 {
-    public static async Task Main( string[] args )
+    public static void Main( string[] args )
     {
         var builder = WebApplication.CreateBuilder( args );
+
+        builder.Services.AddRazorPages();
 
         builder.Services.AddLogging( loggingBuilder =>
                      {
@@ -29,53 +31,32 @@ internal class Program
                          loggingBuilder.AddNLog( nLogLoggingConfiguration );
                      } );
 
+        // Add services to the container.
+        builder.Services.AddControllersWithViews();
+        builder.Services.AddStorageLayer();
+        builder.Services.AddSecurityLayer();
+        builder.Services.AddEmailImplementations();
+        builder.Services.AddSingleton<IMessageStreamWriterFactory, MessageStreamWriterFactory>();
+        builder.Services.AddApplicationLayer();
+        builder.Services.AddHealthChecks()
+            .AddCheck<VaultHealthCheck>( "vault_readiness_check" );
+
+        // TODO Crutch! Remove it!
 #pragma warning disable ASP0000 // Suppress the warning - getting the logging service before the build is necessary to log the information from the Hashicorp Vault communication
-        var loggerFactory = builder.Services
-            .BuildServiceProvider()
+        var loggerFactory = builder.Services.BuildServiceProvider()
             .GetRequiredService<ILoggerFactory>();
 #pragma warning restore ASP0000
 
         var rootLogger = loggerFactory.CreateLogger<Program>();
-
-        var nonSensitiveDataProvider = new NonSensitiveSettingsProvider( loggerFactory );
+        var nonSensitiveDataProvider = new NonSensitiveSettingsProvider( loggerFactory! );
         nonSensitiveDataProvider.ReadAppConfig( builder.Configuration );
+        builder.Services.AddSingleton<IStorageSettingsProvider>( nonSensitiveDataProvider );
+        builder.Services.AddSingleton<IReaderSettingsProvider>( nonSensitiveDataProvider );
+        // TODO Crutch! Remove it!
 
-        var vaultProvider = new HashicorpProvider( loggerFactory, nonSensitiveDataProvider );
-        VaultCredentials? vaultCredentials = null;
-
-        VaultCredentialsReader vaultCredentialsReader = new VaultCredentialsReader( loggerFactory );
-
-        if( !builder.Environment.IsDevelopment() )
-        {
-            vaultCredentials = vaultCredentialsReader.ReadFromEnvironmentVariables();
-        }
-        else
-        {
-            vaultCredentials = vaultCredentialsReader.ReadFromUserSecrets( builder.Configuration );
-        }
-
-        if( vaultCredentials == null )
-        {
-            rootLogger.LogCritical( "Error reading credentials! Application shutdown." );
-            Environment.Exit( 1 );
-        }
-
-        await vaultProvider.LoadVaultData( vaultCredentials );
-
-        if( !vaultProvider.IsRead )
-        {
-            rootLogger.LogCritical( "Error accessing the sensitive data! Application shutdown." );
-            Environment.Exit( 1 );
-        }
-
-        // Add services to the container.
-        builder.Services.AddControllersWithViews();
-        builder.Services.AddImplementations( vaultProvider, nonSensitiveDataProvider );
-        builder.Services.AddSingleton<IMessageStreamWriterFactory, MessageStreamWriterFactory>();
-        builder.AddApplicationLayer();
 
         var app = builder.Build();
-
+        
         // Configure the HTTP request pipeline.
         if(!app.Environment.IsDevelopment())
         {
@@ -87,14 +68,15 @@ internal class Program
         else
         {
         }
-        //var temp = app.Services.GetService( typeof( SecuritySupplements.Contracts.ISensitiveDataProvider ) );
         app.UseHttpsRedirection();
         app.UseStaticFiles();
 
         app.UseRouting();
 
+        app.UseAuthentication();
         app.UseAuthorization();
-
+        app.UseSecretsReadinessGate();
+        app.MapHealthChecks( "/health" );
         app.MapControllerRoute(
             name: "default",
             pattern: "{controller=Home}/{action=Index}/{id?}" );

@@ -1,13 +1,13 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 
 namespace SecuritySupplements.HashicorpVault
 {
     /// <summary>
-    /// The reader that obtains the the Hashicorp Vault access credentials from wherever they are.
+    /// TODO remove all explicit configuration reading - configuration pattern should be used instead.
     /// </summary>
-    /// <param name="loggerFactory">The logger factory.</param>
-    public class VaultCredentialsReader( ILoggerFactory loggerFactory )
+    internal class VaultCredentialsReader : IVaultCredentialsReader
     {
         private const string ConfigurationUserSecretsSectionName = "HashicorpVault";
         private const string CredentialToken = "HashicorpVaultCredentialToken";
@@ -15,19 +15,36 @@ namespace SecuritySupplements.HashicorpVault
         private const string CredentialPath = "HashicorpVaultCredentialPath";
         private const string CredentialMountPoint = "HashicorpVaultCredentialMountPoint";
 
-        private readonly ILogger _logger = loggerFactory.CreateLogger( nameof( VaultCredentialsReader ) );
+        private readonly ILogger _logger;
+        private readonly IConfiguration _configuration;
+        private readonly IHostEnvironment _hostEnvironment;
+
+        public VaultCredentialsReader( ILogger<VaultCredentialsReader> logger,
+            IConfiguration configuration,
+            IHostEnvironment hostEnvironment )
+        {
+            _logger = logger;
+            _configuration = configuration;
+            _hostEnvironment = hostEnvironment;
+        }
 
         /// <summary>
-        /// Read the Hashicorp Vault access credentials from the current configuration's user secrets.
+        /// Read the Hashicorp Vault access credentials.
         /// </summary>
-        /// <param name="configuration">current configuration</param>
         /// <returns>If the credentials were successfully read - wrapper for Vault credentials. Null otherwise.</returns>
-        public VaultCredentials? ReadFromUserSecrets( IConfiguration configuration )
+        public VaultCredentials? Read()
+        {
+            return _hostEnvironment.IsDevelopment() ?
+                ReadFromUserSecrets() :
+                ReadFromEnvironmentVariables();
+        }
+
+        private VaultCredentials? ReadFromUserSecrets()
         {
             try
             {
                 _logger.LogTrace( $"Attempting to read the {ConfigurationUserSecretsSectionName} configuration section." );
-                var section = configuration.GetSection( ConfigurationUserSecretsSectionName );
+                var section = _configuration.GetSection( ConfigurationUserSecretsSectionName );
 
                 if(!section.Exists())
                 {
@@ -39,39 +56,35 @@ namespace SecuritySupplements.HashicorpVault
                 _logger.LogTrace( $"Configuration section {ConfigurationUserSecretsSectionName} was successfully read." );
                 return result;
             }
-            catch( Exception ex )
+            catch(Exception ex)
             {
                 _logger.LogCritical( ex, $"Error reading the configuration section {ConfigurationUserSecretsSectionName}. See exception details. Application cannot start." );
                 return null;
             }
         }
 
-        /// <summary>
-        /// Read the Hashicorp Vault access credentials from the environment's variables.
-        /// </summary>
-        /// <returns>If the credentials were successfully read - wrapper for Vault credentials. Null otherwise.</returns>
-        public VaultCredentials? ReadFromEnvironmentVariables()
+        private VaultCredentials? ReadFromEnvironmentVariables()
         {
             VaultCredentials vaultCredentials = new VaultCredentials();
 
             _logger.LogTrace( $"Attempting to read the environment variables." );
 
-            if( !SetFromEnvironmentValue( CredentialToken, v => vaultCredentials.Token = v ) )
+            if(!SetFromEnvironmentValue( CredentialToken, v => vaultCredentials.Token = v ))
             {
                 return null;
             }
 
-            if( !SetFromEnvironmentValue( CredentialAddress, v => vaultCredentials.Address = v ) )
+            if(!SetFromEnvironmentValue( CredentialAddress, v => vaultCredentials.Address = v ))
             {
                 return null;
             }
 
-            if( !SetFromEnvironmentValue( CredentialPath, v => vaultCredentials.Path = v ) )
+            if(!SetFromEnvironmentValue( CredentialPath, v => vaultCredentials.Path = v ))
             {
                 return null;
             }
 
-            if( !SetFromEnvironmentValue( CredentialMountPoint, v => vaultCredentials.MountPoint = v ) )
+            if(!SetFromEnvironmentValue( CredentialMountPoint, v => vaultCredentials.MountPoint = v ))
             {
                 return null;
             }
@@ -85,21 +98,21 @@ namespace SecuritySupplements.HashicorpVault
         {
             try
             {
-                _logger.LogTrace( $"Attempting to read the environment variable { environmentVariableName }." );
-                
+                _logger.LogTrace( $"Attempting to read the environment variable {environmentVariableName}." );
+
                 var value = Environment.GetEnvironmentVariable( environmentVariableName );
 
-                _logger.LogTrace( $"Environment variable { environmentVariableName } was read." );
-                
+                _logger.LogTrace( $"Environment variable {environmentVariableName} was read." );
+
                 setEnvironmentVariableValue( value );
 
-                _logger.LogTrace( $"Environment variable { environmentVariableName } was set." );
+                _logger.LogTrace( $"Environment variable {environmentVariableName} was set." );
 
                 return true;
             }
-            catch( Exception ex )
+            catch(Exception ex)
             {
-                _logger.LogCritical( ex, $"Error reading the environment variable { environmentVariableName }. See exception details. Application cannot start." );
+                _logger.LogCritical( ex, $"Error reading the environment variable {environmentVariableName}. See exception details. Application cannot start." );
 
                 return false;
             }

@@ -6,6 +6,7 @@ using Storage.Contracts;
 namespace SecuritySupplements
 {
     /// <summary>
+    /// TODO replace with the options pattern.
     /// The implementation for the provider of the settings used by the storage and the settings used by the sensitive data reader.
     /// </summary>
     /// <param name="loggerFactory">The logger factory.</param>

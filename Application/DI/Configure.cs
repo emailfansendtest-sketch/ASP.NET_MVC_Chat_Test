@@ -6,30 +6,28 @@ using Application.Interfaces.Sending;
 using Application.Interfaces.Streaming;
 using Application.Interfaces.User;
 using Application.Interfaces.Utilities;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application.DI
 {
     public static class Configure
     {
-        public static WebApplicationBuilder AddApplicationLayer( this WebApplicationBuilder builder )
+        public static IServiceCollection AddApplicationLayer( this IServiceCollection services )
         {
-            builder.Services.AddSingleton<IMessageBatchWriterService, MessageBatchWriterService>();
-            builder.Services.AddSingleton<IClock, SystemClock>();
-            builder.Services.AddHostedService<MessageBatchWriterWorker>();
+            services.AddSingleton<IMessageBatchWriterService, MessageBatchWriterService>();
+            services.AddSingleton<IClock, SystemClock>();
+            services.AddHostedService<MessageBatchWriterWorker>();
 
-            builder.Services.AddSingleton<IChatEventBus, ChatEventBus>();
-            //builder.Services.AddSingleton<IMessageStreamWriterFactory, MessageStreamWriterFactory>();
-            builder.Services.AddSingleton<IMessageStreamService, MessageStreamService>();
+            services.AddSingleton<IChatEventBus, ChatEventBus>();
+            services.AddSingleton<IMessageStreamService, MessageStreamService>();
 
-            builder.Services.AddSingleton<IMessageSenderService, MessageSenderService>();
+            services.AddSingleton<IMessageSenderService, MessageSenderService>();
 
-            builder.Services.AddScoped<IUserRepository, IdentityUserRepository>();
-            builder.Services.AddScoped<ICurrentUserAccessor, HttpContextCurrentUserAccessor>();
-            builder.Services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IUserRepository, IdentityUserRepository>();
+            services.AddScoped<ICurrentUserAccessor, HttpContextCurrentUserAccessor>();
+            services.AddScoped<IUserService, UserService>();
 
-            return builder;
+            return services;
         }
 
     }

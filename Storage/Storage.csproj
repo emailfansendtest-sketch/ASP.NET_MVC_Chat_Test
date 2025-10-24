@@ -24,7 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DomainModels\DomainModels.csproj" />
     <ProjectReference Include="..\Storage.Contracts\Storage.Contracts.csproj" />
-    <ProjectReference Include="..\UserData.Contracts\SecuritySupplements.Contracts.csproj" />
+    <ProjectReference Include="..\SecuritySupplements.Contracts\SecuritySupplements.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

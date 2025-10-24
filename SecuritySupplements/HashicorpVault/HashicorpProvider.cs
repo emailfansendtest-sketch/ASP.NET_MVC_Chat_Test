@@ -1,7 +1,6 @@
 ﻿using SecuritySupplements.Contracts;
 using VaultSharp.V1.AuthMethods.Token;
 using VaultSharp;
-using VaultSharp.V1.Commons;
 using SecuritySupplements.HashicorpVault;
 using Microsoft.Extensions.Logging;
 
@@ -10,10 +9,9 @@ namespace SecuritySupplements
     /// <summary>
     /// The implementation of the provider of the protection critical data.
     /// </summary>
-    public class HashicorpProvider( ILoggerFactory loggerFactory, IReaderSettingsProvider readerSettingsProvider ) : ISensitiveDataProvider
+    internal class HashicorpProvider : ISensitiveDataProvider, IVaultDataLoader
     {
-        private readonly ILogger _logger = loggerFactory.CreateLogger( nameof( HashicorpProvider ) );
-        private readonly IReaderSettingsProvider readerSettingsProvider = readerSettingsProvider;
+        private readonly ILogger<HashicorpProvider> _logger;
 
         public string DatabaseConnectionString { get; private set; } = string.Empty;
 
@@ -25,67 +23,40 @@ namespace SecuritySupplements
 
         public string ConfirmationEmailPassword { get; private set; } = string.Empty;
 
-        /// <summary>
-        /// The indicator that the secrets data was loaded successfully from the Vault.
-        /// </summary>
-        public bool IsRead { get; private set; }
+        public event EventHandler? SecretsReloaded;
 
-        /// <summary>
-        /// Load secrets data from the Vault.
-        /// </summary>
-        /// <param name="vaultOptions">The vault secrets access credentials.</param>
-        /// <returns></returns>
-        public async Task LoadVaultData( VaultCredentials vaultOptions )
+        public HashicorpProvider( ILoggerFactory loggerFactory )
         {
-            var vaultToken = vaultOptions.Token;
-            var authMethod = new TokenAuthMethodInfo( vaultToken );
-            var vaultClientSettings = new VaultClientSettings( vaultOptions.Address, authMethod );
+            _logger = loggerFactory.CreateLogger<HashicorpProvider>();
+        }
 
-            var client = new VaultClient( vaultClientSettings );
+        public async Task LoadAsync( VaultCredentials vaultOptions )
+        {
+            var client = new VaultClient( new VaultClientSettings(
+                vaultOptions.Address, new TokenAuthMethodInfo( vaultOptions.Token ) ) );
 
-            _logger.Log( LogLevel.Trace, "Requesting the sensitive data from Vault." );
+            _logger.LogInformation( "Requesting vault secrets." );
 
-            string logAction = string.Empty;
+            var secrets = await client.V1.Secrets.KeyValue.V2.ReadSecretAsync(
+            path: vaultOptions.Path,
+            mountPoint: vaultOptions.MountPoint );
 
-            for(int attempt = 1; attempt <= readerSettingsProvider.ReadingAttemptsMax; attempt++)
-            {
-                try
-                {
-                    logAction = "reading the section";
-                    Secret<SecretData> secrets = await client.V1.Secrets.KeyValue.V2.ReadSecretAsync(
-                      path: vaultOptions.Path,
-                      version: null,
-                      mountPoint: vaultOptions.MountPoint );
-                    var secretsData = secrets.Data.Data;
+            var data = secrets.Data.Data;
 
-                    _logger.Log( LogLevel.Trace, "Sensitive section acquired from Vault. Reading the data values." );
+            DatabaseConnectionString = data[ "DatabaseConnection" ].ToString()!;
 
-                    logAction = "reading the database connection";
-                    DatabaseConnectionString = secretsData[ "DatabaseConnection" ].ToString()!;
+            ConfirmationEmailSmtpHost = data[ "EmailSmtpHost" ].ToString()!;
 
-                    logAction = "reading the smtp host";
-                    ConfirmationEmailSmtpHost = secretsData[ "EmailSmtpHost" ].ToString()!;
+            ConfirmationEmailSmtpPort = int.Parse( data[ "EmailSmtpPort" ].ToString()! );
 
-                    logAction = "reading the smtp port";
-                    ConfirmationEmailSmtpPort = int.Parse( secretsData[ "EmailSmtpPort" ].ToString()! );
+            ConfirmationEmailAddress = data[ "EmailAddress" ].ToString()!;
 
-                    logAction = "reading the email address";
-                    ConfirmationEmailAddress = secretsData[ "EmailAddress" ].ToString()!;
+            ConfirmationEmailPassword = data[ "EmailPassword" ].ToString()!;
 
-                    logAction = "reading the email password";
-                    ConfirmationEmailPassword = secretsData[ "EmailPassword" ].ToString()!;
 
-                    _logger.Log( LogLevel.Trace, "Sensitive data acquired from Vault." );
-                    IsRead = true;
-                    return;
-                }
-                catch(Exception ex)
-                {
-                    _logger.LogError( ex, $"Attempt { attempt }/{ readerSettingsProvider.ReadingAttemptsMax } - Failed reading secrets from Vault." );
-                    await Task.Delay( readerSettingsProvider.ReadingDelay );
-                }
-            }
-            _logger.LogCritical( $"Failed to obtain secrets from Vault after { readerSettingsProvider.ReadingAttemptsMax } attempts. See log for error details." );
+            _logger.LogInformation( "Vault secrets have been read successfully." );
+
+            SecretsReloaded?.Invoke( this, EventArgs.Empty );
         }
     }
 }

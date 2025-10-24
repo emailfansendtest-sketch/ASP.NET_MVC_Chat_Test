@@ -19,7 +19,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Storage.Contracts", "Storag
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MVC_SSL_Chat", "MVC_SSL_Chat\MVC_SSL_Chat.csproj", "{93B11F30-70E8-42D6-9130-390571A86D5A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecuritySupplements.Contracts", "UserData.Contracts\SecuritySupplements.Contracts.csproj", "{457A53A4-6377-4493-BC34-067482A0803F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecuritySupplements.Contracts", "SecuritySupplements.Contracts\SecuritySupplements.Contracts.csproj", "{457A53A4-6377-4493-BC34-067482A0803F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecuritySupplements", "SecuritySupplements\SecuritySupplements.csproj", "{257FE93B-9F07-4DC9-BAED-9BF2B5BF06E3}"
 EndProject

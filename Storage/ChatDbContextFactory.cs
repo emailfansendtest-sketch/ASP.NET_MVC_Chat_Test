@@ -7,18 +7,33 @@ namespace Storage
     /// <summary>
     /// The implementation of the database context factory interface.
     /// </summary>
-    internal class ChatDbContextFactory( ISensitiveDataProvider sensitiveDataProvider ) : IChatDbContextFactory
+    public class ChatDbContextFactory : IDbContextFactory<ChatDbContext>
     {
-        private readonly ISensitiveDataProvider _sensitiveDataProvider = sensitiveDataProvider;
+        private readonly ISensitiveDataProvider _sensitiveDataProvider;
+        private readonly ISecretsReadinessTracker _secretsReadinessTracker;
 
         /// <inheritdoc />
-        public ChatDbContext Create()
+        public ChatDbContextFactory(
+            ISensitiveDataProvider sensitiveDataProvider,
+            ISecretsReadinessTracker secretsReadinessTracker )
         {
-            var options =
-                new DbContextOptionsBuilder<ChatDbContext>().UseNpgsql( _sensitiveDataProvider.DatabaseConnectionString,
-                    b => b.MigrationsAssembly( Assembly.GetExecutingAssembly().GetName().Name) ).Options;
-
-            return new ChatDbContext(options);
+            _sensitiveDataProvider = sensitiveDataProvider;
+            _secretsReadinessTracker = secretsReadinessTracker;
         }
+
+        public ChatDbContext CreateDbContext( )
+        {
+            _secretsReadinessTracker.WaitUntilReady();
+
+            var connectionString = _sensitiveDataProvider.DatabaseConnectionString;
+            var options = new DbContextOptionsBuilder<ChatDbContext>()
+                .UseNpgsql( connectionString,
+                    b => b.MigrationsAssembly( Assembly.GetExecutingAssembly().GetName().Name ) )
+                .Options;
+
+            return new ChatDbContext( options );
+        }
+        public Task<ChatDbContext> CreateDbContextAsync( CancellationToken cancellationToken = default )
+            => Task.FromResult( CreateDbContext() );
     }
 }
