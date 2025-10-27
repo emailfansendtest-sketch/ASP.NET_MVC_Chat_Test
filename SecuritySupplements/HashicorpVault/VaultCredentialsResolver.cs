@@ -5,9 +5,9 @@ using Microsoft.Extensions.Hosting;
 namespace SecuritySupplements.HashicorpVault
 {
     /// <summary>
-    /// TODO remove all explicit configuration reading - configuration pattern should be used instead.
+    /// The type that fetches the Hashicorp Vault access credentials.
     /// </summary>
-    internal class VaultCredentialsReader : IVaultCredentialsReader
+    internal class VaultCredentialsResolver : IVaultCredentialsResolver
     {
         private const string ConfigurationUserSecretsSectionName = "HashicorpVault";
         private const string CredentialToken = "HashicorpVaultCredentialToken";
@@ -19,7 +19,7 @@ namespace SecuritySupplements.HashicorpVault
         private readonly IConfiguration _configuration;
         private readonly IHostEnvironment _hostEnvironment;
 
-        public VaultCredentialsReader( ILogger<VaultCredentialsReader> logger,
+        public VaultCredentialsResolver( ILogger<VaultCredentialsResolver> logger,
             IConfiguration configuration,
             IHostEnvironment hostEnvironment )
         {
@@ -32,7 +32,7 @@ namespace SecuritySupplements.HashicorpVault
         /// Read the Hashicorp Vault access credentials.
         /// </summary>
         /// <returns>If the credentials were successfully read - wrapper for Vault credentials. Null otherwise.</returns>
-        public VaultCredentials? Read()
+        public VaultCredentials? Resolve()
         {
             return _hostEnvironment.IsDevelopment() ?
                 ReadFromUserSecrets() :

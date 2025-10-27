@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using SecuritySupplements.Contracts;
+﻿using Contracts.Interfaces;
+using Contracts.Options;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Reflection;
 
 namespace Storage
@@ -9,23 +11,29 @@ namespace Storage
     /// </summary>
     public class ChatDbContextFactory : IDbContextFactory<ChatDbContext>
     {
-        private readonly ISensitiveDataProvider _sensitiveDataProvider;
         private readonly ISecretsReadinessTracker _secretsReadinessTracker;
+        private readonly IOptionsMonitor<DatabaseOptions> _databaseMonitor;
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="databaseMonitor">The database connection options monitor.</param>
+        /// <param name="secretsReadinessTracker">The source of the signal to confirm the database connection is obtained.</param>
         public ChatDbContextFactory(
-            ISensitiveDataProvider sensitiveDataProvider,
+            IOptionsMonitor<DatabaseOptions> databaseMonitor,
             ISecretsReadinessTracker secretsReadinessTracker )
         {
-            _sensitiveDataProvider = sensitiveDataProvider;
             _secretsReadinessTracker = secretsReadinessTracker;
+            _databaseMonitor = databaseMonitor;
         }
 
+        /// <inheritdoc />
         public ChatDbContext CreateDbContext( )
         {
             _secretsReadinessTracker.WaitUntilReady();
 
-            var connectionString = _sensitiveDataProvider.DatabaseConnectionString;
+            var databaseOptions = _databaseMonitor.Get( nameof( DatabaseOptions ) );
+            var connectionString = databaseOptions.ConnectionString;
             var options = new DbContextOptionsBuilder<ChatDbContext>()
                 .UseNpgsql( connectionString,
                     b => b.MigrationsAssembly( Assembly.GetExecutingAssembly().GetName().Name ) )

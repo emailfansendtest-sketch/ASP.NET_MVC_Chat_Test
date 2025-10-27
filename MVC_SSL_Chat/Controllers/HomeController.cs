@@ -7,10 +7,10 @@ namespace MVC_SSL_Chat.Controllers
     /// <summary>
     /// The default controller of the website.
     /// </summary>
-    /// <param name="loggerFactory">The logger factory.</param>
-    public class HomeController( ILoggerFactory loggerFactory ) : Controller
+    /// <param name="logger">The logger.</param>
+    public class HomeController( ILogger<HomeController> logger ) : Controller
     {
-        private readonly ILogger _logger = loggerFactory.CreateLogger( nameof( HomeController ) );
+        private readonly ILogger<HomeController> _logger = logger;
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Index()

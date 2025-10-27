@@ -1,8 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using SecuritySupplements;
-using SecuritySupplements.Contracts;
+﻿using Contracts.Interfaces;
+using Contracts.Options;
+using Microsoft.Extensions.DependencyInjection;
 using SecuritySupplements.HashicorpVault;
-using Storage.Contracts;
 
 namespace SecuritySupplements.DI
 {
@@ -10,12 +9,11 @@ namespace SecuritySupplements.DI
     {
         public static IServiceCollection AddSecurityLayer( this IServiceCollection services )
         {
-            services.AddSingleton<IStorageSettingsProvider, NonSensitiveSettingsProvider>();
-            services.AddSingleton<IReaderSettingsProvider, NonSensitiveSettingsProvider>();
-            services.AddSingleton<IVaultCredentialsReader, VaultCredentialsReader>();
-            services.AddSingleton<HashicorpProvider>();
-            services.AddSingleton<IVaultDataLoader>( provider => provider.GetRequiredService<HashicorpProvider>() );
-            services.AddSingleton<ISensitiveDataProvider>( provider => provider.GetRequiredService<HashicorpProvider>() );
+            services.AddOptions<SmtpOptions>();
+            services.AddOptions<DatabaseOptions>();
+            services.AddSingleton<IVaultCredentialsResolver, VaultCredentialsResolver>();
+            services.AddSingleton<HashicorpVaultClient>();
+            services.AddSingleton<IVaultClient, HashicorpVaultClient>();
             services.AddSingleton<ISecretsReadinessTracker, SecretsReadinessTracker>();
             services.AddHostedService<VaultSecretsLoadWorker>();
 

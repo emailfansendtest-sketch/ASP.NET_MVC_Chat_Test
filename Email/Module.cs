@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using SecuritySupplements.Contracts;
+﻿using Contracts.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Email
 {
@@ -16,7 +16,6 @@ namespace Email
         public static IServiceCollection AddEmailImplementations( this IServiceCollection serviceCollection )
         {
             serviceCollection.AddSingleton<IConfirmationEmailSender, FreeConfirmationEmailMessageSender>();
-            serviceCollection.AddSingleton<IConfirmationEmailProvider, ConfirmationEmailProvider>();
             return serviceCollection;
         }
     }

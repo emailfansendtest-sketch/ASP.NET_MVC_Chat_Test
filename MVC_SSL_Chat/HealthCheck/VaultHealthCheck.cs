@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
-using SecuritySupplements.Contracts;
+﻿using Contracts.Interfaces;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace MVC_SSL_Chat.HealthCheck
 {

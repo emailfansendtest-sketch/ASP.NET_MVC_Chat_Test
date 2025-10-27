@@ -1,9 +1,9 @@
-﻿using DomainModels;
+﻿using Contracts.Interfaces;
+using DomainModels;
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
-using Storage.Contracts;
 
 namespace Storage
 {

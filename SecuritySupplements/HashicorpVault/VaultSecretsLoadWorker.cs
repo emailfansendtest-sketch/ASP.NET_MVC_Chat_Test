@@ -1,36 +1,39 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Contracts.Interfaces;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SecuritySupplements.Contracts;
+using Microsoft.Extensions.Options;
+using MVC_SSL_Chat.Internal;
 
 namespace SecuritySupplements.HashicorpVault
 {
     internal class VaultSecretsLoadWorker : BackgroundService
     {
         private readonly ILogger<VaultSecretsLoadWorker> _logger;
-        private readonly IVaultDataLoader _vaultDataLoader;
+        private readonly IVaultClient _vaultDataLoader;
         private readonly ISecretsReadinessTracker _readinessTracker;
-        private readonly IVaultCredentialsReader _credentialsReader;
-        private readonly IReaderSettingsProvider _settings;
+        private readonly IVaultCredentialsResolver _credentialsReader;
+        private readonly SensitiveDataClientOptions _options;
 
         public VaultSecretsLoadWorker(
             ILogger<VaultSecretsLoadWorker> logger,
-            IVaultDataLoader vaultDataLoader,
+            IVaultClient vaultDataLoader,
             ISecretsReadinessTracker readinessTracker,
-            IVaultCredentialsReader credentialsReader,
-            IReaderSettingsProvider settings )
+            IVaultCredentialsResolver credentialsReader,
+            IOptions<SensitiveDataClientOptions> options )
         {
             _logger = logger;
             _vaultDataLoader = vaultDataLoader;
             _readinessTracker = readinessTracker;
             _credentialsReader = credentialsReader;
-            _settings = settings;
+            _options = options.Value;
+
         }
 
         protected override async Task ExecuteAsync( CancellationToken stoppingToken )
         {
             _logger.LogInformation( "VaultSecretsLoadWorker started." );
 
-            var delay = TimeSpan.FromMilliseconds( _settings.ReadingDelay );
+            var delay = TimeSpan.FromMilliseconds( _options.ConsequentReadDelayMs );
 
             while( !stoppingToken.IsCancellationRequested )
             {
@@ -68,7 +71,7 @@ namespace SecuritySupplements.HashicorpVault
         {
             try
             {
-                var credentials = _credentialsReader.Read();
+                var credentials = _credentialsReader.Resolve();
 
                 if(credentials == null)
                 {
@@ -76,7 +79,7 @@ namespace SecuritySupplements.HashicorpVault
                     return false;
                 }
 
-                await _vaultDataLoader.LoadAsync( credentials! );
+                await _vaultDataLoader.AccessAsync( credentials! );
                 return true;
             }
             catch(Exception ex)

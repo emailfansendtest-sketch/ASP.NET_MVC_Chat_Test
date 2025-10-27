@@ -1,6 +1,6 @@
 ﻿using Application.Contracts;
 using Application.Interfaces.Utilities;
-using Storage.Contracts;
+using Contracts.Interfaces;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

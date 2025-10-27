@@ -1,4 +1,4 @@
-﻿namespace SecuritySupplements.Contracts
+﻿namespace Contracts.Interfaces
 {
     /// <summary>
     /// The sender of the email that is being sent for the new account activation.

@@ -1,5 +1,6 @@
 ﻿using Application.Contracts;
 using Application.Interfaces.Streaming;
+using Microsoft.Extensions.Localization;
 using System.Text.Json;
 
 namespace MVC_SSL_Chat.Internal

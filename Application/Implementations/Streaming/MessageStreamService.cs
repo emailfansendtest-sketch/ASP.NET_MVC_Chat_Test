@@ -1,8 +1,10 @@
 ﻿using Application.Contracts;
 using Application.Interfaces.Streaming;
 using Application.Interfaces.Utilities;
+using Contracts.Interfaces;
+using Contracts.Options;
 using Microsoft.Extensions.Logging;
-using Storage.Contracts;
+using Microsoft.Extensions.Options;
 
 namespace Application.Implementations.Streaming
 {
@@ -10,18 +12,21 @@ namespace Application.Implementations.Streaming
     {
         private readonly IChatEventBus _eventBus;
         private readonly IDbService _dbService; // returns domain messages
+        private readonly IClock _clock;
+        private readonly MessageStreamOptions _messageStream;
         private readonly ILogger<MessageStreamService> _logger;
-        private readonly IStorageSettingsProvider _storageSettingsProvider;
 
         public MessageStreamService(
             IChatEventBus eventBus,
             IDbService dbService,
-            IStorageSettingsProvider storageSettingsProvider,
+            IClock clock,
+            IOptions<MessageStreamOptions> messageStream,
             ILogger<MessageStreamService> logger )
         {
             _eventBus = eventBus;
             _dbService = dbService;
-            _storageSettingsProvider = storageSettingsProvider;
+            _clock = clock;
+            _messageStream = messageStream.Value;
             _logger = logger;
         }
 
@@ -32,14 +37,15 @@ namespace Application.Implementations.Streaming
 
             try
             {
-                await SendMessagesPerLastDayAsync( writer, ct );
+                await SendMessagesAsync( writer, ct );
 
                 // Keep-alive loop: can be in this service (clean)
                 while(!ct.IsCancellationRequested)
                 {
                     await writer.WriteKeepAliveAsync( ct );
                     await Task.Delay(
-                        _storageSettingsProvider.RefreshingFrequencyInMilliseconds, ct );
+                        _messageStream.KeepAliveIntervalMs,
+                        ct );
                 }
             }
             catch(TaskCanceledException)
@@ -52,11 +58,11 @@ namespace Application.Implementations.Streaming
             }
         }
 
-        private async Task SendMessagesPerLastDayAsync(
+        private async Task SendMessagesAsync(
             IMessageStreamWriter writer, CancellationToken ct )
         {
-            var to = DateTime.UtcNow;
-            var from = to.AddDays( -1 );
+            var to = _clock.UtcNow;
+            var from = to.AddSeconds( - _messageStream.ReplayLookbackS );
             var rawMessages = await _dbService.GetMessages( from, to ); // domain models
             foreach(var raw in rawMessages)
             {

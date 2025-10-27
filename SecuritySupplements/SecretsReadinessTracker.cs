@@ -1,4 +1,4 @@
-﻿using SecuritySupplements.Contracts;
+﻿using Contracts.Interfaces;
 
 namespace SecuritySupplements
 {

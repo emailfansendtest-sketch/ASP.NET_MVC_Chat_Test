@@ -1,4 +1,4 @@
-﻿using SecuritySupplements.Contracts;
+﻿using Contracts.Interfaces;
 
 namespace MVC_SSL_Chat.Middleware
 {

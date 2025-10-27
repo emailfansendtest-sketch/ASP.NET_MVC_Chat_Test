@@ -1,6 +1,4 @@
 ﻿using Application.Interfaces.Streaming;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 
 namespace MVC_SSL_Chat.Internal
 {

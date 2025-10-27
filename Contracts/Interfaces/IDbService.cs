@@ -1,6 +1,6 @@
 ﻿using DomainModels;
 
-namespace Storage.Contracts
+namespace Contracts.Interfaces
 {
     /// <summary>
     /// The interface of the service used for the database access operations.
