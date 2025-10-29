@@ -2,7 +2,7 @@
 {
     public static class MiddlewareExtensions
     {
-        public static void UseSecretsReadinessGate( this IApplicationBuilder app )
+        public static void UseCustomMiddleware( this IApplicationBuilder app )
         {
             app.UseMiddleware<SecretsReadinessGateMiddleware>();
         }

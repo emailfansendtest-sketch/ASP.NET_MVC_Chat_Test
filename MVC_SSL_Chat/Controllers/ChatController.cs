@@ -3,7 +3,6 @@
 using MVC_SSL_Chat.Models;
 using Application.Interfaces.Sending;
 using Application.Interfaces.Streaming;
-using Application.Interfaces.User;
 
 namespace MVC_SSL_Chat.Controllers
 {
@@ -13,18 +12,15 @@ namespace MVC_SSL_Chat.Controllers
         private readonly IMessageStreamWriterFactory _writerFactory;
         private readonly IMessageStreamService _streamService;
         private readonly IMessageSenderService _senderService;
-        private readonly IUserService _userService;
 
         public ChatController(
             IMessageStreamWriterFactory writerFactory,
             IMessageStreamService streamService,
-            IMessageSenderService senderService,
-            IUserService userService )
+            IMessageSenderService senderService )
         {
             _writerFactory = writerFactory;
             _streamService = streamService;
             _senderService = senderService;
-            _userService = userService;
         }
 
         [HttpGet( "stream" )]
@@ -40,13 +36,13 @@ namespace MVC_SSL_Chat.Controllers
         }
 
         [HttpPost( "send" )]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendAsync( [FromBody] MessageViewModel contract, CancellationToken ct )
         {
             if(!ModelState.IsValid)
                 return BadRequest( ModelState );
 
-            var user = await _userService.GetCurrentUserAsync( );
-            await _senderService.SendAsync( contract.Content!, user!, ct );
+            await _senderService.SendAsync( contract.Content!, ct );
             return Ok();
         }
     }

@@ -1,8 +1,8 @@
-﻿using Application.Contracts;
-using Application.Interfaces.Streaming;
+﻿using Application.Interfaces.Streaming;
 using Application.Interfaces.Utilities;
 using Contracts.Interfaces;
 using Contracts.Options;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -63,25 +63,11 @@ namespace Application.Implementations.Streaming
         {
             var to = _clock.UtcNow;
             var from = to.AddSeconds( - _messageStream.ReplayLookbackS );
-            var rawMessages = await _dbService.GetMessages( from, to ); // domain models
-            foreach(var raw in rawMessages)
+            var messages = await _dbService.GetMessages( from, to ); // domain models
+            foreach( var message in messages )
             {
-                var dto = DomainToDto( raw );
-                await writer.WriteMessageAsync( dto, ct );
+                await writer.WriteMessageAsync( message, ct );
             }
         }
-
-        /// <summary>
-        /// TODO replace
-        /// </summary>
-        /// <param name="raw"></param>
-        /// <returns></returns>
-        private MessageDto DomainToDto( DomainModels.ChatMessage raw )
-            => new MessageDto
-            {
-                Author = raw.Author!,
-                Content = raw.Content,
-                CreatedTime = raw.CreatedTime
-            };
     }
 }

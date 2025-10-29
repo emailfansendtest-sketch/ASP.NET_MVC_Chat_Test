@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Storage.DI
 {
-    public static class Configure
+    public static class ConfigureExtensions
     {
         public static IServiceCollection AddStorageLayer( this IServiceCollection services )
         {

@@ -1,19 +1,19 @@
 ﻿using Contracts.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Email
+namespace Email.DI
 {
     /// <summary>
     /// Extension for '<see cref="IServiceCollection"/>' (Microsoft.Extensions.DependencyInjection)
     /// </summary>
-    public static class Module
+    public static class ConfigureExtensions
     {
         /// <summary>
         /// Add email implementations to DI.
         /// </summary>
         /// <param name="serviceCollection">Services.</param>
         /// <returns></returns>
-        public static IServiceCollection AddEmailImplementations( this IServiceCollection serviceCollection )
+        public static IServiceCollection AddEmailLayer( this IServiceCollection serviceCollection )
         {
             serviceCollection.AddSingleton<IConfirmationEmailSender, FreeConfirmationEmailMessageSender>();
             return serviceCollection;

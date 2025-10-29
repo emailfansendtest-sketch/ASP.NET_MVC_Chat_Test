@@ -10,20 +10,17 @@ namespace Application.Implementations.Utilities
     internal class MessageBatchWriterWorker : BackgroundService
     {
         private readonly ILogger _logger;
-        private readonly IMessageBatchWriterService _bufferService;
+        private readonly IMessageBatchWriterService _batchWriterService;
         private readonly ISecretsReadinessTracker _secretsReadinessTracker;
-        //private readonly int _savingFrequencyInMilliseconds;
         private readonly PersistenceOptions _persistence;
         public MessageBatchWriterWorker( ILogger<MessageBatchWriterWorker> logger,
-            IMessageBatchWriterService bufferService,
-            //IStorageSettingsProvider settingsProvider,
+            IMessageBatchWriterService batchWriterService,
             ISecretsReadinessTracker secretsReadinessTracker,
             IOptions<PersistenceOptions> persistence )
         {
             _logger = logger;
-            _bufferService = bufferService;
+            _batchWriterService = batchWriterService;
             _secretsReadinessTracker = secretsReadinessTracker;
-            //_savingFrequencyInMilliseconds = settingsProvider.SavingFrequencyInMilliseconds;
             _persistence = persistence.Value;
         }
 
@@ -35,7 +32,7 @@ namespace Application.Implementations.Utilities
             {
                 await _secretsReadinessTracker.WaitUntilReadyAsync( cancellationToken );
 
-                await _bufferService.FlushAsync();
+                await _batchWriterService.FlushAsync();
 
                 // Waits for the time period obtained from the settings
                 // before flushing the buffer

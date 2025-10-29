@@ -1,12 +1,8 @@
-﻿using Application.Contracts;
-using Application.Interfaces.Streaming;
+﻿using Application.Interfaces.Streaming;
 using Application.Interfaces.Utilities;
+using DomainModels;
+
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Implementations.Utilities
 {
@@ -20,7 +16,7 @@ namespace Application.Implementations.Utilities
             _logger = logger;
         }
 
-        public async Task PublishAsync( MessageDto message )
+        public async Task PublishAsync( ChatMessage message )
         {
             // fire-and-forget per listener to avoid blocking publisher
             foreach(var listener in _listeners.ToArray())
@@ -41,7 +37,7 @@ namespace Application.Implementations.Utilities
             _logger.LogDebug( "Listener unsubscribed: {Listener}", listener.GetType().Name );
         }
 
-        private async Task NotifySafeAsync( IMessageStreamWriter listener, MessageDto message )
+        private async Task NotifySafeAsync( IMessageStreamWriter listener, ChatMessage message )
         {
             try
             {

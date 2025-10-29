@@ -1,6 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-#nullable disable
+﻿#nullable disable
 
 using System;
 using System.Text;
@@ -17,6 +15,7 @@ namespace MVC_SSL_Chat.Areas.Identity.Pages.Account
 {
     /// <summary>
     /// RegisterConfirmation page's code behind implementation - technically identical to the default.
+    /// The reason for the custom class creation - to replace the default RegisterConfirmation page's content.
     /// </summary>
     [AllowAnonymous]
     public class RegisterConfirmationModel( UserManager<ChatUser> userManager ) : PageModel

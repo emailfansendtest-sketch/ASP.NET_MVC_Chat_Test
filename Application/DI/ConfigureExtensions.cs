@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Application.DI
 {
-    public static class Configure
+    public static class ConfigureExtensions
     {
         public static IServiceCollection AddApplicationLayer( this IServiceCollection services )
         {
@@ -21,11 +21,12 @@ namespace Application.DI
             services.AddSingleton<IChatEventBus, ChatEventBus>();
             services.AddSingleton<IMessageStreamService, MessageStreamService>();
 
-            services.AddSingleton<IMessageSenderService, MessageSenderService>();
+            services.AddScoped<IMessageSenderService, MessageSenderService>();
 
             services.AddScoped<IUserRepository, IdentityUserRepository>();
             services.AddScoped<ICurrentUserAccessor, HttpContextCurrentUserAccessor>();
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IChatMessageFactory, ChatMessageFactory>();
 
             return services;
         }

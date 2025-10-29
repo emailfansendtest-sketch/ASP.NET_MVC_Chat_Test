@@ -1,6 +1,8 @@
-using NLog.Extensions.Logging;
 using MVC_SSL_Chat.Middleware;
 using MVC_SSL_Chat.DI;
+using MVC_SSL_Chat.HealthChecks;
+using MVC_SSL_Chat.Antiforgery;
+using MVC_SSL_Chat.Logging;
 
 internal class Program
 {
@@ -8,27 +10,16 @@ internal class Program
     {
         var builder = WebApplication.CreateBuilder( args );
 
-        builder.Services.AddRazorPages()
-            .AddViewLocalization()
-            .AddDataAnnotationsLocalization();
+        builder.Services.AddRazorPages();
+        builder.Services.AddControllersWithViews();
 
-        builder.Services.AddLogging( loggingBuilder =>
-                     {
-                         loggingBuilder.ClearProviders();
-                         loggingBuilder.SetMinimumLevel( LogLevel.Trace );
+        builder.Services.AddLocalization( options => options.ResourcesPath = "Resources" );
+        builder.AddCustomAntiforgery();
 
-                         var nLogLoggingConfiguration =
-                             new NLogLoggingConfiguration(
-                                 builder.Configuration.GetSection( "NLog" )
-                             );
+        builder.AddCustomLogging();
 
-                         loggingBuilder.AddNLog( nLogLoggingConfiguration );
-                     } );
-
-        builder.Services.AddControllersWithViews()
-            .AddViewLocalization()
-            .AddDataAnnotationsLocalization();
-        builder.AddCustomParts();
+        builder.AddCustomDependencies();
+        builder.AddCustomHealthChecks();
 
         var app = builder.Build();
 
@@ -49,12 +40,14 @@ internal class Program
 
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseSecretsReadinessGate();
-        app.MapHealthChecks( "/health" );
+        app.UseCustomMiddleware();
+
+        app.MapCustomAntiforgery();
+        app.MapCustomHealthChecks();
+
         app.MapControllerRoute(
             name: "default",
             pattern: "{controller=Home}/{action=Index}/{id?}" );
-
         app.MapRazorPages();
 
         app.Run();

@@ -1,6 +1,6 @@
-﻿using Application.Contracts;
+﻿using DomainModels;
 using Application.Interfaces.Streaming;
-using Microsoft.Extensions.Localization;
+
 using System.Text.Json;
 
 namespace MVC_SSL_Chat.Internal
@@ -16,7 +16,7 @@ namespace MVC_SSL_Chat.Internal
             _logger = logger;
         }
 
-        public async Task WriteMessageAsync( MessageDto message, CancellationToken ct = default )
+        public async Task WriteMessageAsync( ChatMessage message, CancellationToken ct = default )
         {
             var json = JsonSerializer.Serialize( message.ToViewModel() );
             var formatted = $"data: {json}\n\n";

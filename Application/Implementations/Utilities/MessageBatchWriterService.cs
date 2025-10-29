@@ -1,19 +1,15 @@
-﻿using Application.Contracts;
+﻿using DomainModels;
 using Application.Interfaces.Utilities;
 using Contracts.Interfaces;
-using System;
+
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Implementations.Utilities
 {
     internal class MessageBatchWriterService : IMessageBatchWriterService
     {
-        private ConcurrentBag<MessageDto> _mainBuffer = new();
-        private ConcurrentBag<MessageDto> _spareBuffer = new();
+        private ConcurrentBag<ChatMessage> _mainBuffer = new();
+        private ConcurrentBag<ChatMessage> _spareBuffer = new();
 
         private readonly ReaderWriterLockSlim _lock = new();
         private readonly IDbService _dbService;
@@ -30,7 +26,7 @@ namespace Application.Implementations.Utilities
         }
 
         /// <inheritdoc />
-        public void Append( MessageDto message )
+        public void Append( ChatMessage message )
         {
             bool readerLockTaken = false;
 
@@ -80,11 +76,9 @@ namespace Application.Implementations.Utilities
             Interlocked.Exchange( ref _flushProgressIndicator, 0 );
         }
 
-        private async Task SaveMessagesAsync( IEnumerable<MessageDto> messages )
+        private async Task SaveMessagesAsync( IEnumerable<ChatMessage> messages )
         {
-            var newMessages = messages.Select( m => m.ToDatabaseEntity() ).ToArray();
-
-            await _dbService.SaveChangesAsync( newMessages );
+            await _dbService.SaveChangesAsync( messages.ToArray() );
         }
 
     }

@@ -1,29 +1,24 @@
-﻿using Application.Interfaces.Streaming;
-using MVC_SSL_Chat.HealthCheck;
+﻿using Application.DI;
+using Application.Interfaces.Streaming;
+using Contracts.Options;
+using Contracts.Interfaces;
+using Email.DI;
 using MVC_SSL_Chat.Internal;
 using SecuritySupplements.DI;
 using Storage.DI;
-using Email;
-using Application.DI;
-using Contracts.Options;
-using Microsoft.AspNetCore.Localization;
-using System.Globalization;
-using Contracts.Interfaces;
 
 namespace MVC_SSL_Chat.DI
 {
-    public static class Configure
+    public static class ConfigureExtensions
     {
         private static WebApplicationBuilder AddSolutionLayers( this WebApplicationBuilder builder )
         {
             builder.Services.AddStorageLayer();
             builder.Services.AddSecurityLayer();
-            builder.Services.AddEmailImplementations();
+            object value = builder.Services.AddEmailLayer();
             builder.Services.AddSingleton<IMessageStreamWriterFactory, MessageStreamWriterFactory>();
             builder.Services.AddSingleton<IConfirmationEmailLocalizer, ConfirmationEmailLocalizer>();
             builder.Services.AddApplicationLayer();
-            builder.Services.AddHealthChecks()
-                .AddCheck<VaultHealthCheck>( "vault_readiness_check" );
             return builder;
         }
 
@@ -35,18 +30,10 @@ namespace MVC_SSL_Chat.DI
             return builder;
         }
 
-        private static WebApplicationBuilder AddLocalization( this WebApplicationBuilder builder )
-        {
-            builder.Services.AddLocalization( options => options.ResourcesPath = "Resources" );
-
-            return builder;
-        }
-
-        public static WebApplicationBuilder AddCustomParts( this WebApplicationBuilder builder )
+        public static WebApplicationBuilder AddCustomDependencies( this WebApplicationBuilder builder )
         {
             builder.AddSolutionLayers();
             builder.AddSolutionOptions();
-            builder.AddLocalization();
             return builder;
         }
     }
