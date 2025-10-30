@@ -67,6 +67,7 @@ Infra
 ### Prerequisites
 
 * .NET 8 SDK
+* PostgreSQL (“/ASP.Net_Core_MVC_Chat_Test/Storage/Migrations” - database description)
 * Docker & Docker Compose
 * (Optional) `curl` for quick smoke tests
 
@@ -91,11 +92,11 @@ docker compose up --build
 
 When all services are healthy:
 
-* App: [http://localhost:5000](http://localhost:5000)
+* App: [http://localhost:5206](http://localhost:5206)
 * Health:
 
-  * Liveness → `GET http://localhost:5000/health/live`
-  * Readiness → `GET http://localhost:5000/health/ready`
+  * Liveness → `GET http://localhost:5206/health/live`
+  * Readiness → `GET http://localhost:5206/health/ready`
 
 > The app stays “not ready” until secrets are loaded from Vault (the worker loads them and then signals readiness).
 
@@ -127,9 +128,13 @@ docker exec -it vault \
 ## 🧪 Local run without Docker
 
 1. Start a PostgreSQL instance (local or container).
-2. Export Vault dev envs or use user-secrets in Dev:
+2. Export Vault credentials:  
+   * env vars:
+     ** `HashicorpVaultCredentialToken`, `HashicorpVaultCredentialAddress`, `HashicorpVaultCredentialMountPoint` and `HashicorpVaultCredentialPath`
+   * user-secrets in Dev: 
+     ** `HashicorpVault` section
+     ** `Token`, `Address`, `MountPoint` and `Path` keys
 
-   * `HASHICORP_VAULT_TOKEN`, `HASHICORP_VAULT_ADDRESS`, `HASHICORP_VAULT_MOUNTPOINT`, `HASHICORP_VAULT_PATH`
 3. Run:
 
    ```bash
@@ -313,7 +318,7 @@ services:
       vault:
         condition: service_healthy
     ports:
-      - "5000:8080"
+      - "5206:8080"
 ```
 
 ---
@@ -344,6 +349,7 @@ MIT (or your preferred license)
 👤 Author
 Sergey Korolkov
 [LinkedIn](https://www.linkedin.com/in/sergey-korolkov-518508a4/) • [GitHub](https://github.com/emailfansendtest-sketch)
+
 
 
 
