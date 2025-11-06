@@ -323,15 +323,6 @@ services:
 
 ---
 
-## 🧭 Roadmap (optional polish)
-
-* Replace `ConcurrentBag` with `Channel<ChatMessage>` for backpressure
-* Prometheus metrics (SSE clients, batch flush duration, DB errors)
-* Swagger/OpenAPI for `/chat/send`
-* CI: build/test/publish (GitHub Actions)
-
----
-
 ## 📄 License
 
 MIT (or your preferred license)
@@ -349,6 +340,7 @@ MIT (or your preferred license)
 👤 Author
 Sergey Korolkov
 [LinkedIn](https://www.linkedin.com/in/sergey-korolkov-518508a4/) • [GitHub](https://github.com/emailfansendtest-sketch)
+
 
 
 
