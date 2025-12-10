@@ -1,4 +1,5 @@
-﻿using Application.Interfaces.Sending;
+﻿using Application.Interfaces.ChatEvents;
+using Application.Interfaces.Sending;
 using Application.Interfaces.Utilities;
 using DomainModels;
 
@@ -7,11 +8,11 @@ namespace Application.Implementations.Sending
     internal class MessageSenderService : IMessageSenderService
     {
         private readonly IChatEventBus _eventBus;
-        private readonly IMessageBatchWriterService _batchWriter;
+        private readonly IMessageWriterService _batchWriter;
 		private readonly IChatMessageFactory _chatMessageFactory;
 
 		public MessageSenderService( 
-            IChatEventBus eventBus, IMessageBatchWriterService batchWriter, IChatMessageFactory chatMessageFactory )
+            IChatEventBus eventBus, IMessageWriterService batchWriter, IChatMessageFactory chatMessageFactory )
         {
             _eventBus = eventBus;
             _batchWriter = batchWriter;
@@ -23,7 +24,7 @@ namespace Application.Implementations.Sending
             var message = await _chatMessageFactory.CreateAsync( content );
 			
             // Buffer for bulk persisting
-			_batchWriter.Append( message );
+			await _batchWriter.AppendAsync( message, ct );
 
             await _eventBus.PublishAsync( message );
         }

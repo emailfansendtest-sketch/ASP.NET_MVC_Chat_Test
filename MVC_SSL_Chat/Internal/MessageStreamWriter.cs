@@ -9,6 +9,7 @@ namespace MVC_SSL_Chat.Internal
     {
         private readonly HttpResponse _response;
         private readonly ILogger<MessageStreamWriter> _logger;
+        private readonly SemaphoreSlim _writeLock = new( 1, 1 );
 
         public MessageStreamWriter( HttpResponse response, ILogger<MessageStreamWriter> logger )
         {
@@ -20,8 +21,7 @@ namespace MVC_SSL_Chat.Internal
         {
             var json = JsonSerializer.Serialize( message.ToViewModel() );
             var formatted = $"data: {json}\n\n";
-            await _response.WriteAsync( formatted, ct );
-            await _response.Body.FlushAsync( ct );
+            await WriteNonInterleaved( formatted, ct );
             _logger.LogTrace( "Streamed message to client" );
         }
 
@@ -29,12 +29,25 @@ namespace MVC_SSL_Chat.Internal
         {
             try
             {
-                await _response.WriteAsync( ": keep-alive\n\n", ct );
-                await _response.Body.FlushAsync( ct );
+                await WriteNonInterleaved( ": keep-alive\n\n", ct );
             }
             catch(Exception ex)
             {
                 _logger.LogDebug( ex, "Keep-alive failed (client disconnected?)" );
+            }
+
+        }
+        private async Task WriteNonInterleaved( string payload, CancellationToken ct )
+        {
+            await _writeLock.WaitAsync( ct );
+            try
+            {
+                await _response.WriteAsync( payload, ct );
+                await _response.Body.FlushAsync( ct );
+            }
+            finally
+            {
+                _writeLock.Release();
             }
         }
     }

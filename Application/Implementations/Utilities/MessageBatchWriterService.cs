@@ -3,83 +3,78 @@ using Application.Interfaces.Utilities;
 using Contracts.Interfaces;
 
 using System.Collections.Concurrent;
+using System.Threading.Channels;
+using Contracts.Options;
+using Microsoft.Extensions.Options;
 
 namespace Application.Implementations.Utilities
 {
-    internal class MessageBatchWriterService : IMessageBatchWriterService
+    internal class MessageBatchWriterService : IMessageWriterService
     {
-        private ConcurrentBag<ChatMessage> _mainBuffer = new();
-        private ConcurrentBag<ChatMessage> _spareBuffer = new();
-
-        private readonly ReaderWriterLockSlim _lock = new();
+        private readonly Channel<ChatMessage> _channel;
         private readonly IDbService _dbService;
-
-        private int _flushProgressIndicator;
+        private readonly MessageWriterOptions _options;
 
         /// <summary>
         /// The constructor.
         /// </summary>
         /// <param name="dbService">The database service.</param>
-        public MessageBatchWriterService( IDbService dbService )
+        public MessageBatchWriterService( IDbService dbService, IOptions<MessageWriterOptions> options )
         {
+            _options = options.Value;
+
+            _channel = Channel.CreateBounded<ChatMessage>(
+                new BoundedChannelOptions( _options.MessageQueueCapacity )
+                {
+                    SingleReader = true,
+                    SingleWriter = false,
+                    FullMode = BoundedChannelFullMode.Wait
+                }
+
+
+                );
             _dbService = dbService;
         }
 
         /// <inheritdoc />
-        public void Append( ChatMessage message )
+        public async Task AppendAsync( ChatMessage message, CancellationToken ct )
         {
-            bool readerLockTaken = false;
-
-            try
-            {
-                _lock.EnterReadLock();
-                readerLockTaken = true;
-                _mainBuffer.Add( message );
-            }
-            finally
-            {
-                if(readerLockTaken)
-                {
-                    _lock.ExitReadLock();
-                }
-            }
+            await _channel.Writer.WriteAsync( message, ct );
         }
 
         /// <inheritdoc />
-        public async Task FlushAsync()
+        public async Task FlushAsync( )
         {
-            var isFlushHappening = Interlocked.CompareExchange( ref _flushProgressIndicator, 1, 0 );
+            var batch = new ConcurrentQueue<ChatMessage>();
 
-            if(isFlushHappening == 1)
+            while( _channel.Reader.TryRead( out var msg ) )
             {
-                return; // The previous flush is in progress, so the current one is postponed
-            }
-            bool writerLockTaken = false;
+                batch.Enqueue( msg );
 
-            try
-            {
-                _lock.EnterWriteLock();
-                writerLockTaken = true;
-
-                (_spareBuffer, _mainBuffer) = (_mainBuffer, _spareBuffer);
-            }
-            finally
-            {
-                if(writerLockTaken)
+                if(batch.Count < _options.MessageBatchSize )
                 {
-                    _lock.ExitWriteLock();
+                    continue; // The batch size did not reach the maximum.
                 }
+
+                await SaveMessagesAsync( batch );
+                batch.Clear();
             }
 
-            await SaveMessagesAsync( _spareBuffer );
-            _spareBuffer.Clear();
-            Interlocked.Exchange( ref _flushProgressIndicator, 0 );
+            if(batch.Count > 0)
+            {
+                await SaveMessagesAsync( batch ); // Saving last message chunk.
+            }
+        }
+
+        public void Dispose()
+        {
+            // Signals the channel that there will be no messages past the ones already written;
+            _channel.Writer.Complete();
         }
 
         private async Task SaveMessagesAsync( IEnumerable<ChatMessage> messages )
         {
-            await _dbService.SaveChangesAsync( messages.ToArray() );
+            await _dbService.SaveChangesAsync( messages );
         }
-
     }
 }

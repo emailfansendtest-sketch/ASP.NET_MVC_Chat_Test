@@ -1,4 +1,5 @@
-﻿using Application.Interfaces.Streaming;
+﻿using Application.Interfaces.ChatEvents;
+using Application.Interfaces.Streaming;
 using Application.Interfaces.Utilities;
 using Contracts.Interfaces;
 using Contracts.Options;

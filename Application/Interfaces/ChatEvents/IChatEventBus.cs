@@ -1,7 +1,7 @@
 ﻿using DomainModels;
 using Application.Interfaces.Streaming;
 
-namespace Application.Interfaces.Utilities
+namespace Application.Interfaces.ChatEvents
 {
     /// <summary>
     /// In-memory pub/sub bus for chat events within the application process.

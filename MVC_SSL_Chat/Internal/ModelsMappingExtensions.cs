@@ -16,7 +16,7 @@ namespace MVC_SSL_Chat.Internal
         public static MessageViewModel ToViewModel( this ChatMessage message ) =>
             new MessageViewModel()
             {
-                AuthorName = message.Author!.UserName,
+                AuthorName = message.Author.UserName,
                 Content = message.Content,
                 CreatedTime = message.CreatedTime
             };

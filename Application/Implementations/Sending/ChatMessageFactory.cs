@@ -1,7 +1,10 @@
-﻿using Application.Interfaces.Sending;
+﻿using Application.Exceptions;
+using Application.Interfaces.Sending;
 using Application.Interfaces.User;
 using Application.Interfaces.Utilities;
 using DomainModels;
+using Microsoft.Build.Framework;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Implementations.Sending
 {
@@ -19,13 +22,20 @@ namespace Application.Implementations.Sending
         public async Task<ChatMessage> CreateAsync( string content )
         {
             var author = await _userService.GetCurrentUserAsync();
+
+            if( author == null )
+            {
+                throw new UserNotFoundException();
+            }
+
             var created = _clock.UtcNow;
 
             return new ChatMessage
             {
-                Author = author,
+                Author = author!,
                 Content = content,
-                CreatedTime = created
+                CreatedTime = created,
+                AuthorId = author.Id
             };
         }
     }

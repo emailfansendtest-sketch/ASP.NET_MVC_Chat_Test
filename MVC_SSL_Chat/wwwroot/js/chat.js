@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         sendBtn.addEventListener("click", async (evt) => {
             evt.preventDefault();
-            const payload = { Content: input.value };
+            const payload = input.value;
 
             const resp = await fetch("/chat/send", {
                 method: "POST",

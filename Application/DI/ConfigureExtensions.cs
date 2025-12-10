@@ -1,7 +1,9 @@
-﻿using Application.Implementations.Sending;
+﻿using Application.Implementations.ChatEvents;
+using Application.Implementations.Sending;
 using Application.Implementations.Streaming;
 using Application.Implementations.User;
 using Application.Implementations.Utilities;
+using Application.Interfaces.ChatEvents;
 using Application.Interfaces.Sending;
 using Application.Interfaces.Streaming;
 using Application.Interfaces.User;
@@ -14,11 +16,12 @@ namespace Application.DI
     {
         public static IServiceCollection AddApplicationLayer( this IServiceCollection services )
         {
-            services.AddSingleton<IMessageBatchWriterService, MessageBatchWriterService>();
+            services.AddSingleton<IMessageWriterService, MessageBatchWriterService>();
             services.AddSingleton<IClock, SystemClock>();
             services.AddHostedService<MessageBatchWriterWorker>();
 
             services.AddSingleton<IChatEventBus, ChatEventBus>();
+            services.AddSingleton<IChatEventSubscriberFactory, ChatEventSubscriberFactory>();
             services.AddSingleton<IMessageStreamService, MessageStreamService>();
 
             services.AddScoped<IMessageSenderService, MessageSenderService>();

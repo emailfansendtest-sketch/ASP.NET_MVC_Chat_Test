@@ -2,7 +2,6 @@
 using DomainModels;
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Storage
@@ -22,18 +21,15 @@ namespace Storage
             try
             {
                 using var storageContext = _dbContextFactory.CreateDbContext();
-                await using( storageContext.ConfigureAwait( false ) )
-                {
-                    var result = await storageContext.ChatMessages.Include( m => m.Author )
-                        .Where( message => message.CreatedTime >= from && message.CreatedTime <= to )
-                        .AsNoTracking()
-                        .ToArrayAsync().ConfigureAwait( false );
 
-                    _logger.LogTrace( $"The messages are obtained successfully." );
+                var result = await storageContext.ChatMessages.Include( m => m.Author )
+                    .Where( message => message.CreatedTime >= from && message.CreatedTime <= to )
+                    .AsNoTracking()
+                    .ToArrayAsync().ConfigureAwait( false );
 
-                    return result;
+                _logger.LogTrace( $"The messages are obtained successfully." );
 
-                }
+                return result;
             }
             catch ( Exception ex )
             {
@@ -51,16 +47,13 @@ namespace Storage
             {
                 using var storageContext = _dbContextFactory.CreateDbContext();
 
-                await using ( storageContext.ConfigureAwait( false ) )
-                {
-                    await storageContext.ChatMessages
-                        .AddRangeAsync( newMessages ).ConfigureAwait( false );
+                await storageContext.ChatMessages
+                    .AddRangeAsync( newMessages ).ConfigureAwait( false );
 
-                    await storageContext
-                        .BulkSaveChangesAsync().ConfigureAwait( false );
+                await storageContext
+                    .BulkSaveChangesAsync( ).ConfigureAwait( false );
 
-                    _logger.LogTrace( $"The messages are saved successfully." );
-                }
+                _logger.LogTrace( $"The messages are saved successfully." );
             }
             catch ( Exception ex )
             {
