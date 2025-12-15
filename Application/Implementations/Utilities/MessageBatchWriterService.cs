@@ -1,17 +1,17 @@
-﻿using DomainModels;
+﻿using System.Collections.Concurrent;
+using System.Threading.Channels;
+using Microsoft.Extensions.Options;
+
+using Application.DTO;
 using Application.Interfaces.Utilities;
 using Contracts.Interfaces;
-
-using System.Collections.Concurrent;
-using System.Threading.Channels;
 using Contracts.Options;
-using Microsoft.Extensions.Options;
 
 namespace Application.Implementations.Utilities
 {
     internal class MessageBatchWriterService : IMessageWriterService
     {
-        private readonly Channel<ChatMessage> _channel;
+        private readonly Channel<ChatMessageDto> _channel;
         private readonly IDbService _dbService;
         private readonly MessageWriterOptions _options;
 
@@ -19,25 +19,26 @@ namespace Application.Implementations.Utilities
         /// The constructor.
         /// </summary>
         /// <param name="dbService">The database service.</param>
-        public MessageBatchWriterService( IDbService dbService, IOptions<MessageWriterOptions> options )
+        public MessageBatchWriterService( 
+            IDbService dbService, 
+            IOptions<MessageWriterOptions> options )
         {
             _options = options.Value;
 
-            _channel = Channel.CreateBounded<ChatMessage>(
+            _channel = Channel.CreateBounded<ChatMessageDto>(
                 new BoundedChannelOptions( _options.MessageQueueCapacity )
                 {
                     SingleReader = true,
                     SingleWriter = false,
                     FullMode = BoundedChannelFullMode.Wait
                 }
-
-
                 );
+
             _dbService = dbService;
         }
 
         /// <inheritdoc />
-        public async Task AppendAsync( ChatMessage message, CancellationToken ct )
+        public async Task AppendAsync( ChatMessageDto message, CancellationToken ct )
         {
             await _channel.Writer.WriteAsync( message, ct );
         }
@@ -45,7 +46,7 @@ namespace Application.Implementations.Utilities
         /// <inheritdoc />
         public async Task FlushAsync( )
         {
-            var batch = new ConcurrentQueue<ChatMessage>();
+            var batch = new ConcurrentQueue<ChatMessageDto>();
 
             while( _channel.Reader.TryRead( out var msg ) )
             {
@@ -72,9 +73,11 @@ namespace Application.Implementations.Utilities
             _channel.Writer.Complete();
         }
 
-        private async Task SaveMessagesAsync( IEnumerable<ChatMessage> messages )
+        private async Task SaveMessagesAsync( IEnumerable<ChatMessageDto> messages )
         {
-            await _dbService.SaveChangesAsync( messages );
+            await _dbService.SaveChangesAsync( 
+                messages.Select( EntitiesMappingExtensions.ToDomain ) 
+                );
         }
     }
 }

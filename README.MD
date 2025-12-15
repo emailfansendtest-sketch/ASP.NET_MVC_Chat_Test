@@ -193,6 +193,20 @@ cd ..
 
 ### 5) Apply EF Core migrations
 
+**Note about** `dotnet ef`
+The EF Core design-time factory used for migrations reads configuration from Storage/appsettings.json and expects the connection string under ConnectionStrings:DefaultConnection.
+
+Create the file Storage/appsettings.json (do not commit it if it contains credentials), for example:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=ChatDb;Username=YourPostgresUserName;Password=YourStrongPass"
+  }
+}
+```
+
+
 From repo root:
 
 ```bash

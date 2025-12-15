@@ -1,20 +1,17 @@
-﻿
-namespace Application.Interfaces.Sending
+﻿namespace Application.Interfaces.Sending
 {
-
     /// <summary>
-    /// Coordinates intake of a new chat message from the web layer:
-    /// validates basic input, enriches it with author metadata, persists via a batch writer,
-    /// and publishes it to the streaming pipeline so connected clients receive it.
+    /// Accepts raw message input from the web layer and orchestrates the send pipeline:
+    /// creates a message DTO (author + timestamp), publishes it for real-time streaming,
+    /// and schedules it for persistence.
     /// </summary>
     public interface IMessageSenderService
     {
         /// <summary>
-        /// Creates and processes a new chat message authored by the presently authentified user.
+        /// Creates and processes a new chat message authored by the currently authenticated user.
         /// </summary>
         /// <param name="content">Raw message text submitted by the client.</param>
         /// <param name="ct">Cancellation token for the end-to-end send operation.</param>
-        /// <returns></returns>
         Task SendAsync( string content, CancellationToken ct = default );
     }
 }

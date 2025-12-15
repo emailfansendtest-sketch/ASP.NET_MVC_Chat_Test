@@ -1,4 +1,5 @@
-﻿using Application.Interfaces.ChatEvents;
+﻿using Application.Implementations.Utilities;
+using Application.Interfaces.ChatEvents;
 using Application.Interfaces.Streaming;
 using Application.Interfaces.Utilities;
 using Contracts.Interfaces;
@@ -67,7 +68,7 @@ namespace Application.Implementations.Streaming
             var messages = await _dbService.GetMessages( from, to ); // domain models
             foreach( var message in messages )
             {
-                await writer.WriteMessageAsync( message, ct );
+                await writer.WriteMessageAsync( message.ToDto(), ct );
             }
         }
     }

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Application.Interfaces.Streaming
+﻿namespace Application.Interfaces.Streaming
 {
     /// <summary>
     /// Drives a server-to-client message stream for one connected client.

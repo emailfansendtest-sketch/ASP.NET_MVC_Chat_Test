@@ -28,6 +28,6 @@
         /// <summary>
         /// The loaded user who has sent the message.
         /// </summary>
-        public required ChatUser Author { get; set; }
+        public ChatUser? Author { get; set; }
     }
 }

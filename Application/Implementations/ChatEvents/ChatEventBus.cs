@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-using DomainModels;
+using Application.DTO;
 using Application.Interfaces.ChatEvents;
 using Application.Interfaces.Streaming;
 
@@ -36,7 +36,7 @@ namespace Application.Implementations.ChatEvents
             }
         }
 
-        public Task PublishAsync( ChatMessage message )
+        public Task PublishAsync( ChatMessageDto message )
         {
             foreach( var (listener, sub) in _subs )
             {

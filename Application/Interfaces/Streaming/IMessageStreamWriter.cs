@@ -1,9 +1,10 @@
-﻿using DomainModels;
+﻿using Application.DTO;
 
 namespace Application.Interfaces.Streaming
 {
     /// <summary>
-    /// The transport used to push messages to a connected client.
+    /// Transport used to push <see cref="ChatMessageDto"/> payloads to a connected client.
+    /// Implementations typically write to an HTTP response (e.g., SSE).
     /// </summary>
     public interface IMessageStreamWriter
     {
@@ -12,7 +13,7 @@ namespace Application.Interfaces.Streaming
         /// </summary>
         /// <param name="message">Message DTO to be delivered to the client.</param>
         /// <param name="ct">Cancellation token for the write operation.</param>
-        Task WriteMessageAsync( ChatMessage message, CancellationToken ct = default );
+        Task WriteMessageAsync( ChatMessageDto message, CancellationToken ct = default );
 
         /// <summary>
         /// Sends a transport-specific keep-alive (e.g., SSE comment) to prevent idle timeouts.

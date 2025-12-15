@@ -1,25 +1,24 @@
-﻿using Application.Exceptions;
-using Application.Interfaces.Sending;
+﻿using Application.DTO;
+using Application.Exceptions;
+using Application.Interfaces.EntityCreation;
 using Application.Interfaces.User;
 using Application.Interfaces.Utilities;
 using DomainModels;
-using Microsoft.Build.Framework;
-using Microsoft.Extensions.Logging;
 
-namespace Application.Implementations.Sending
+namespace Application.Implementations.EntityCreation
 {
-    internal class ChatMessageFactory : IChatMessageFactory
+    internal class ChatMessageDtoFactory : IChatMessageDtoFactory
     {
         private readonly IUserService _userService;
         private readonly IClock _clock;
 
-        public ChatMessageFactory( IUserService userService, IClock clock ) 
+        public ChatMessageDtoFactory( IUserService userService, IClock clock )
         {
             _userService = userService;
             _clock = clock;
         }
 
-        public async Task<ChatMessage> CreateAsync( string content )
+        public async Task<ChatMessageDto> CreateAsync( string content )
         {
             var author = await _userService.GetCurrentUserAsync();
 
@@ -28,11 +27,16 @@ namespace Application.Implementations.Sending
                 throw new UserNotFoundException();
             }
 
+            if( string.IsNullOrEmpty(author!.UserName ) )
+            {
+                throw new InvalidUserException();
+            }
+
             var created = _clock.UtcNow;
 
-            return new ChatMessage
+            return new ChatMessageDto
             {
-                Author = author!,
+                AuthorName = author!.UserName!,
                 Content = content,
                 CreatedTime = created,
                 AuthorId = author.Id

@@ -1,8 +1,8 @@
 ﻿using Contracts.Interfaces;
+using Contracts.Options;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MVC_SSL_Chat.Internal;
 
 namespace SecuritySupplements.HashicorpVault
 {

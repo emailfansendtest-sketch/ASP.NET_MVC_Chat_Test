@@ -1,20 +1,21 @@
-﻿using DomainModels;
+﻿using Application.DTO;
 using Application.Interfaces.Streaming;
 
 namespace Application.Interfaces.ChatEvents
 {
     /// <summary>
-    /// In-memory pub/sub bus for chat events within the application process.
-    /// Producers publish messages; streaming writers subscribe to receive real-time updates.
+    /// In-process pub/sub bus for broadcasting <see cref="ChatMessageDto"/> events to live connections.
+    /// Publication is best-effort; delivery/backpressure is handled per-subscriber.
     /// Implementations should be thread-safe.
     /// </summary>
     public interface IChatEventBus
     {
         /// <summary>
-        /// Publishes a message to all current subscribers.
+        /// Publishes a message DTO to all current subscribers.
+        /// This call should be non-blocking with respect to client I/O.
         /// </summary>
-        /// <param name="message">Message to broadcast.</param>
-        Task PublishAsync( ChatMessage message );
+        /// <param name="messageDto">The message DTO to broadcast.</param>
+        Task PublishAsync( ChatMessageDto messageDto );
 
         /// <summary>
         /// Subscribes a streaming listener to receive future messages.
@@ -24,8 +25,7 @@ namespace Application.Interfaces.ChatEvents
         void Subscribe( IMessageStreamWriter listener );
 
         /// <summary>
-        /// Unsubscribes a previously subscribed listener.
-        /// Safe to call multiple times.
+        /// Unsubscribes a previously subscribed listener. Safe to call multiple times.
         /// </summary>
         /// <param name="listener">Listener to remove.</param>
         void Unsubscribe( IMessageStreamWriter listener );

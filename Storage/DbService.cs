@@ -1,18 +1,27 @@
-﻿using Contracts.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Polly;
+
+using Contracts.Interfaces;
 using DomainModels;
 using EFCore.BulkExtensions;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Contracts.Options;
 
 namespace Storage
 {
     /// <summary>
     /// The implementation of the service used for the database access operations.
     /// </summary>
-    internal class DbService( ILoggerFactory loggerFactory, IDbContextFactory<ChatDbContext> dbContextFactory ) : IDbService
+    internal class DbService( 
+        ILoggerFactory loggerFactory, 
+        IDbContextFactory<ChatDbContext> dbContextFactory,
+        IOptions<DatabaseClientOptions> databaseClientOptions
+        ) : IDbService
     {
         private readonly IDbContextFactory<ChatDbContext> _dbContextFactory = dbContextFactory;
         private readonly ILogger _logger = loggerFactory.CreateLogger( nameof( DbService ) );
+        private readonly DatabaseClientOptions _options = databaseClientOptions.Value;
 
         /// <inheritdoc />
         public async Task<IEnumerable<ChatMessage>> GetMessages( DateTime from, DateTime to )
@@ -43,17 +52,32 @@ namespace Storage
         {
             _logger.LogTrace( $"Saving the changes." );
 
+            var retryPolicy = Policy.Handle<Exception>().WaitAndRetryAsync(
+                retryCount: _options.MaximumRetryCount, 
+                sleepDurationProvider: _ => TimeSpan.FromMilliseconds( _options.IntervalBetweenRetriesMs ),
+                onRetry:
+                    ( exception, duration, retryCount, context ) =>
+                    {
+                        _logger.LogInformation(
+                            $"Error on save attempt. Retrying in {duration.TotalSeconds} seconds (Reason: {exception.Message}) (Retry count: {retryCount})" );
+                    } );
+            
             try
             {
-                using var storageContext = _dbContextFactory.CreateDbContext();
+                await retryPolicy.ExecuteAsync( async _ => 
+                {
+                    using var storageContext = _dbContextFactory.CreateDbContext();
 
-                await storageContext.ChatMessages
-                    .AddRangeAsync( newMessages ).ConfigureAwait( false );
+                    await storageContext.ChatMessages
+                        .AddRangeAsync( newMessages ).ConfigureAwait( false );
 
-                await storageContext
-                    .BulkSaveChangesAsync( ).ConfigureAwait( false );
+                    await storageContext
+                        .BulkSaveChangesAsync().ConfigureAwait( false );
 
-                _logger.LogTrace( $"The messages are saved successfully." );
+                    _logger.LogTrace( $"The messages are saved successfully." );
+                
+                }, CancellationToken.None ).ConfigureAwait( false );
+
             }
             catch ( Exception ex )
             {

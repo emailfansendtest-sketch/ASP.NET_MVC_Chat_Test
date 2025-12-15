@@ -24,6 +24,7 @@ namespace MVC_SSL_Chat.DI
 
         private static WebApplicationBuilder AddSolutionOptions( this WebApplicationBuilder builder )
         {
+            builder.Services.Configure<DatabaseClientOptions>( builder.Configuration.GetSection( DatabaseClientOptions.ConfigKey ) );
             builder.Services.Configure<SensitiveDataClientOptions>( builder.Configuration.GetSection( SensitiveDataClientOptions.ConfigKey ) );
             builder.Services.Configure<MessageStreamOptions>( builder.Configuration.GetSection( MessageStreamOptions.ConfigKey ) );
             builder.Services.Configure<MessageWriterOptions>( builder.Configuration.GetSection( MessageWriterOptions.ConfigKey ) );

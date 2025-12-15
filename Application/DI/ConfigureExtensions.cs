@@ -1,9 +1,11 @@
 ﻿using Application.Implementations.ChatEvents;
+using Application.Implementations.EntityCreation;
 using Application.Implementations.Sending;
 using Application.Implementations.Streaming;
 using Application.Implementations.User;
 using Application.Implementations.Utilities;
 using Application.Interfaces.ChatEvents;
+using Application.Interfaces.EntityCreation;
 using Application.Interfaces.Sending;
 using Application.Interfaces.Streaming;
 using Application.Interfaces.User;
@@ -29,7 +31,7 @@ namespace Application.DI
             services.AddScoped<IUserRepository, IdentityUserRepository>();
             services.AddScoped<ICurrentUserAccessor, HttpContextCurrentUserAccessor>();
             services.AddScoped<IUserService, UserService>();
-            services.AddScoped<IChatMessageFactory, ChatMessageFactory>();
+            services.AddScoped<IChatMessageDtoFactory, ChatMessageDtoFactory>();
 
             return services;
         }

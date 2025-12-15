@@ -1,4 +1,4 @@
-﻿namespace MVC_SSL_Chat.Internal
+﻿namespace Contracts.Options
 {
     /// <summary>
     /// Sensitive data access client settings.

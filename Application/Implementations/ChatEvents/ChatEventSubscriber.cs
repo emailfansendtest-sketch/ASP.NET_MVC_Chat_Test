@@ -1,7 +1,7 @@
-﻿using Application.Interfaces.ChatEvents;
+﻿using Application.DTO;
+using Application.Interfaces.ChatEvents;
 using Application.Interfaces.Streaming;
 using Contracts.Options;
-using DomainModels;
 
 using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
@@ -15,7 +15,7 @@ namespace Application.Implementations.ChatEvents
         private readonly ILogger<ChatEventSubscriber> _logger;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
-        private readonly Channel<ChatMessage> _channel;
+        private readonly Channel<ChatMessageDto> _channel;
         private readonly Task _pump;
 
         public ChatEventSubscriber( 
@@ -26,7 +26,7 @@ namespace Application.Implementations.ChatEvents
             _listener = listener;
             _logger = loggerFactory.CreateLogger<ChatEventSubscriber>();
 
-            _channel = Channel.CreateBounded<ChatMessage>( 
+            _channel = Channel.CreateBounded<ChatMessageDto>( 
                 new BoundedChannelOptions( options.SubscriberCapacity )
             {
                 SingleReader = true,
@@ -37,7 +37,7 @@ namespace Application.Implementations.ChatEvents
             _pump = PumpAsync();
         }
 
-        public void TryWrite( ChatMessage message )
+        public void TryWrite( ChatMessageDto message )
         {
             if( !_channel.Writer.TryWrite( message ) )
             {

@@ -70,8 +70,13 @@ namespace MVC_SSL_Chat.Controllers
                 _logger.LogError( "Attempt of message sending by the unauthorized user." );
                 return Unauthorized();
             }
+            catch( InvalidUserException )
+            {
+                _logger.LogError( "Error reading the user's data." );
+                return Unauthorized();
+            }
 
-            catch ( Exception ex )
+            catch( Exception ex )
             {
                 _logger.LogError( ex, "Error while sending the message." );
                 throw;

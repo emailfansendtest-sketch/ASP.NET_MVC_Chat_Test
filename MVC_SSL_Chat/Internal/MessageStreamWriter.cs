@@ -1,4 +1,4 @@
-﻿using DomainModels;
+﻿using Application.DTO;
 using Application.Interfaces.Streaming;
 
 using System.Text.Json;
@@ -9,7 +9,7 @@ namespace MVC_SSL_Chat.Internal
     {
         private readonly HttpResponse _response;
         private readonly ILogger<MessageStreamWriter> _logger;
-        private readonly SemaphoreSlim _writeLock = new( 1, 1 );
+        private readonly SemaphoreSlim _writeLock = new SemaphoreSlim( 1, 1 );
 
         public MessageStreamWriter( HttpResponse response, ILogger<MessageStreamWriter> logger )
         {
@@ -17,9 +17,9 @@ namespace MVC_SSL_Chat.Internal
             _logger = logger;
         }
 
-        public async Task WriteMessageAsync( ChatMessage message, CancellationToken ct = default )
+        public async Task WriteMessageAsync( ChatMessageDto messageDto, CancellationToken ct = default )
         {
-            var json = JsonSerializer.Serialize( message.ToViewModel() );
+            var json = JsonSerializer.Serialize( messageDto.ToViewModel() );
             var formatted = $"data: {json}\n\n";
             await WriteNonInterleaved( formatted, ct );
             _logger.LogTrace( "Streamed message to client" );
