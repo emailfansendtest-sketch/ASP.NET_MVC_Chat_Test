@@ -107,18 +107,19 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: YourPostgresUserName
       POSTGRES_PASSWORD: YourStrongPass
       POSTGRES_DB: ChatDb
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ChatDb"]
+      test: ["CMD-SHELL", "pg_isready -U YourPostgresUserName -d ChatDb"]
       interval: 10s
       timeout: 3s
       retries: 10
 
   vault:
+    container_name: RepoVault1
     image: hashicorp/vault:1.16
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: "root"
@@ -133,7 +134,7 @@ services:
       retries: 10
 ```
 
-3) Write secrets into Vault
+### 3) Write secrets into Vault
 
 The app expects a KV v2 secret under:
 
@@ -144,9 +145,9 @@ The app expects a KV v2 secret under:
 Write it using:
 
 ```bash
-docker exec -it vault \
+docker exec -it RepoVault1 \
   vault kv put secret/myapp/config \
-  DatabaseConnection="Host=PostgresMachineHost;Port=5432;Database=ChatDb;Username=YourPostgresUserName;Password=YourStrongPass" \
+  DatabaseConnection="Host=localhost;Port=5432;Database=ChatDb;Username=YourPostgresUserName;Password=YourStrongPass" \
   EmailSmtpHost="smtp.example.com" \
   EmailSmtpPort="587" \
   EmailAddress="no-reply@example.com" \
@@ -176,7 +177,7 @@ Optional:
 
 ---
 
-4) Configure Vault credentials for the app (Development)
+### 4) Configure Vault credentials for the app (Development)
 
 In Development, the app reads Vault credentials from user-secrets under the HashicorpVault section:
 
@@ -190,7 +191,7 @@ dotnet user-secrets set "HashicorpVault:Path" "myapp/config"
 cd ..
 ```
 
-5) Apply EF Core migrations
+### 5) Apply EF Core migrations
 
 From repo root:
 
@@ -198,7 +199,7 @@ From repo root:
 dotnet ef database update --project Storage --startup-project MVC_SSL_Chat
 ```
 
-6) Run the app
+### 6) Run the app
 
 ```bash
 dotnet run --project MVC_SSL_Chat
@@ -212,13 +213,7 @@ Health:
 
 GET /health/live
 
-GET /health/ready (becomes healthy after Vault secrets are loaded)
-
-* App: [http://localhost:xxxx/] (see console output)
-* Health:
-
-  * Liveness → `GET /health/live`
-  * Readiness → `GET /health/ready`
+GET /health/ready 
 
 > The app stays "not ready" until secrets are loaded from Vault (the worker loads them and then signals readiness).
 
@@ -332,7 +327,7 @@ public class ConfirmationEmailBuilder(IStringLocalizer<Contracts.Resources.Local
 ## 🗂️ Project structure (example)
 
 ```bash
-ASP.Net_Core_MVC_Chat_Test.sln
+ASP.NET_MVC_Chat_Test.sln
 MVC_SSL_Chat/            # Web app (MVC + Identity UI)
 Application/             # App services: streaming, sending, utilities
 Storage/                 # EF Core DbContext + migrations
@@ -362,9 +357,6 @@ MIT (or your preferred license)
 👤 Author
 Sergey Korolkov
 [LinkedIn](https://www.linkedin.com/in/sergey-korolkov-518508a4/) • [GitHub](https://github.com/emailfansendtest-sketch)
-
-
-
 
 
 
