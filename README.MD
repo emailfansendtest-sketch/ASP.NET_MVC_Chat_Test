@@ -2,27 +2,36 @@
 
 A small but production-minded **ASP.NET Core 8** chat demo that showcases senior-level engineering practices:
 
-* **MVC** for the chat UI + **Razor Pages** for ASP.NET Identity
-* **Server-Sent Events (SSE)** for real-time updates
-* **HashiCorp Vault** secrets bootstrap + readiness gate + health checks
-* **Antiforgery** protection for AJAX (`/chat/send`)
-* **Options pattern** for non-secret configuration
-* Clean DI, async I/O, structured logging, and localization
+- **MVC** for the chat UI + **Razor Pages** for ASP.NET Identity
+- **Server-Sent Events (SSE)** for real-time updates
+- **HashiCorp Vault** secrets bootstrap + readiness gate + health checks (**required**)
+- **Antiforgery** protection for AJAX (`/chat/send`)
+- **Options pattern** for non-secret configuration
+- Clean DI, async I/O, structured logging, and localization
 
-> This project is a portfolio piece: concise app, complete infrastructure patterns.
+> Portfolio note: the app is intentionally small, but the infrastructure patterns are realistic.
+
+---
+
+## ⚠️ Vault is required
+
+This application **does not start "ready" without Vault**:
+- DB and SMTP settings are loaded from Vault by a background worker.
+- Database access blocks behind a readiness gate until secrets are loaded.
+
+If you want "no-Vault local mode", that would be a **code change** (a dev fallback) and is not implemented.
 
 ---
 
 ## ✨ Features
 
-* **Real-time chat** via SSE (`/chat/stream`)
-* **Post messages** via `POST /chat/send` (CSRF-protected)
-* **HashiCorp Vault** integration with background bootstrap/refresh worker
-* **Readiness middleware** that short-circuits requests until secrets are loaded
-* **Health endpoints**: `/health/live`, `/health/ready`
-* **Localization** using `IStringLocalizer` (resources collocated with the marker type)
-* **Identity** (Razor Pages) with a scoped `DbContext` created via a factory
-* Production-leaning **Docker Compose** setup (**PostgreSQL** + Vault dev + app)
+- **Real-time chat** via SSE (`/chat/stream`)
+- **Post messages** via `POST /chat/send` (CSRF-protected)
+- **HashiCorp Vault** integration with background bootstrap/refresh worker
+- **Readiness middleware** that short-circuits requests until secrets are loaded
+- **Health endpoints**: `/health/live`, `/health/ready`
+- **Localization** using `IStringLocalizer` (resources collocated with the marker type)
+- **Identity** (Razor Pages) with a scoped `DbContext` created via a factory
 
 ---
 
@@ -52,102 +61,191 @@ Infra
 
 ## 🧰 Tech stack
 
-* **.NET 8**, ASP.NET Core MVC, Razor Pages (Identity)
-* **Entity Framework Core** with **Npgsql** (PostgreSQL provider)
-* **PostgreSQL** as DBMS
-* SSE for real-time updates
-* HashiCorp Vault (dev mode in local compose)
-* NLog (or built-in logging), HealthChecks
-* Localization via `IStringLocalizer`
+- **.NET 8**, ASP.NET Core MVC, Razor Pages (Identity)
+- **Entity Framework Core** with **Npgsql** (PostgreSQL provider)
+- **PostgreSQL** as DBMS
+- SSE for real-time updates
+- HashiCorp Vault (dev mode recommended locally)
+- NLog + built-in logging abstractions, HealthChecks
+- Localization via `IStringLocalizer`
 
 ---
 
-## 🚀 Getting started
+## 🚀 Getting started (recommended local dev)
+
+This path runs **PostgreSQL + Vault** in Docker, and runs the **ASP.NET app on your machine**.
 
 ### Prerequisites
 
-* .NET 8 SDK
-* PostgreSQL (“/ASP.Net_Core_MVC_Chat_Test/Storage/Migrations” - database description)
-* Docker & Docker Compose
-* (Optional) `curl` for quick smoke tests
+- .NET 8 SDK
+- Docker + Docker Compose
+- (Optional) `curl` for smoke tests
+- `dotnet-ef` tool if you want to apply migrations from CLI:
+  ```bash
+  dotnet tool install --global dotnet-ef
+  ```
 
 ### 1) Clone
 
 ```bash
-git clone https://github.com/<you>/<repo>.git
-cd <repo>
+git clone https://github.com/emailfansendtest-sketch/ASP.NET_MVC_Chat_Test.git
+cd ASP.NET_MVC_Chat_Test
 ```
 
-### 2) Run with Docker Compose
+### 2) Start PostgreSQL + Vault (dev) with Docker Compose
 
-This brings up:
-
-* **PostgreSQL** (`postgres`)
-* **Vault dev** (`vault`)
-* **App** (`web`)
+Create a file docker-compose.yml in the repo root with the content below, then run:
 
 ```bash
-docker compose up --build
+docker compose up -d
 ```
 
-When all services are healthy:
+Compose file (deps only):
 
-* App: [http://localhost:5206](http://localhost:5206)
-* Health:
+```yaml
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: YourStrongPass
+      POSTGRES_DB: ChatDb
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ChatDb"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
 
-  * Liveness → `GET http://localhost:5206/health/live`
-  * Readiness → `GET http://localhost:5206/health/ready`
+  vault:
+    image: hashicorp/vault:1.16
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "root"
+      VAULT_ADDR: "http://0.0.0.0:8200"
+    command: ["server", "-dev", "-dev-root-token-id=root", "-dev-listen-address=0.0.0.0:8200"]
+    ports:
+      - "8200:8200"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8200/v1/sys/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+```
 
-> The app stays “not ready” until secrets are loaded from Vault (the worker loads them and then signals readiness).
+3) Write secrets into Vault
 
----
+The app expects a KV v2 secret under:
 
-## 🔐 Secrets (Vault dev)
+* MountPoint: secret
 
-The compose file initializes Vault in dev mode with a known root token and a KV (v2) mount at `secret/`.
-Write your app’s secrets to `secret/myapp/config`:
+* Path: myapp/config
+
+Write it using:
 
 ```bash
-# Write secrets into Vault dev (adjust values as needed)
 docker exec -it vault \
   vault kv put secret/myapp/config \
-  DatabaseConnection="Host=postgres;Port=5432;Database=ChatDb;Username=postgres;Password=YourStrongPass" \
+  DatabaseConnection="Host=PostgresMachineHost;Port=5432;Database=ChatDb;Username=YourPostgresUserName;Password=YourStrongPass" \
   EmailSmtpHost="smtp.example.com" \
   EmailSmtpPort="587" \
   EmailAddress="no-reply@example.com" \
-  EmailPassword="p@ssw0rd"
+  EmailPassword="p@ssw0rd" \
+  EmailDisplayName="Chat App"
 ```
+
+Required keys
+
+* DatabaseConnection
+
+* EmailSmtpHost
+
+* EmailSmtpPort
+
+* EmailAddress
+
+* EmailPassword
+
+Optional:
+
+* EmailDisplayName
 
 **Notes**
 
 * PostgreSQL connection string uses `Host=`, not `Server=`.
-* In production, **do not** store tokens in appsettings; use env vars / workload identity.
 
 ---
 
-## 🧪 Local run without Docker
+4) Configure Vault credentials for the app (Development)
 
-1. Start a PostgreSQL instance (local or container).
-2. Export Vault credentials:  
-   * env vars:
-     ** `HashicorpVaultCredentialToken`, `HashicorpVaultCredentialAddress`, `HashicorpVaultCredentialMountPoint` and `HashicorpVaultCredentialPath`
-   * user-secrets in Dev: 
-     ** `HashicorpVault` section
-     ** `Token`, `Address`, `MountPoint` and `Path` keys
-
-3. Run:
-
-   ```bash
-   dotnet run --project src/MVC_SSL_Chat
-   ```
-
-If you’re using EF Core migrations locally, ensure the `Npgsql.EntityFrameworkCore.PostgreSQL` package is referenced, then:
+In Development, the app reads Vault credentials from user-secrets under the HashicorpVault section:
 
 ```bash
-dotnet ef database update
+cd MVC_SSL_Chat
+dotnet user-secrets init
+dotnet user-secrets set "HashicorpVault:Token" "root"
+dotnet user-secrets set "HashicorpVault:Address" "http://localhost:8200"
+dotnet user-secrets set "HashicorpVault:MountPoint" "secret"
+dotnet user-secrets set "HashicorpVault:Path" "myapp/config"
+cd ..
 ```
 
+5) Apply EF Core migrations
+
+From repo root:
+
+```bash
+dotnet ef database update --project Storage --startup-project MVC_SSL_Chat
+```
+
+6) Run the app
+
+```bash
+dotnet run --project MVC_SSL_Chat
+```
+
+Open:
+
+App: https://localhost:xxxx/ (see console output)
+
+Health:
+
+GET /health/live
+
+GET /health/ready (becomes healthy after Vault secrets are loaded)
+
+* App: [http://localhost:xxxx/] (see console output)
+* Health:
+
+  * Liveness → `GET /health/live`
+  * Readiness → `GET /health/ready`
+
+> The app stays "not ready" until secrets are loaded from Vault (the worker loads them and then signals readiness).
+
 ---
+
+## 🔐 Vault credentials (Production / non-Dev)
+
+Outside Development, credentials are read from environment variables:
+
+* HashicorpVaultCredentialToken
+
+* HashicorpVaultCredentialAddress
+
+* HashicorpVaultCredentialMountPoint
+
+* HashicorpVaultCredentialPath
+
+Example:
+
+```bash
+export HashicorpVaultCredentialToken="..."
+export HashicorpVaultCredentialAddress="http://vault:8200"
+export HashicorpVaultCredentialMountPoint="secret"
+export HashicorpVaultCredentialPath="myapp/config"
+```
+
+> Production note: never commit real tokens. Use workload identity / secure secret injection.
 
 ## 🔁 Real-time & antiforgery
 
@@ -168,21 +266,14 @@ await fetch("/chat/send", {
     "Content-Type": "application/json",
     "X-CSRF-TOKEN": token
   },
-  body: JSON.stringify({ Content: "Hello!" }),
-  credentials: "include"
+  body: JSON.stringify({ content: "Hello!" })
 });
 ```
-
-> If you cross origins/ports locally, ensure CORS and set antiforgery cookie `SameSite=None; Secure=true` (use HTTPS).
-
----
 
 ## ❤️ Health endpoints
 
 * **Liveness**: `GET /health/live` → always healthy if process is responsive
 * **Readiness**: `GET /health/ready` → healthy **after secrets are loaded**
-
-Use in K8s:
 
 ```yaml
 livenessProbe:
@@ -221,8 +312,8 @@ public class ConfirmationEmailBuilder(IStringLocalizer<Contracts.Resources.Local
 
 ## 🧪 Tests (suggested)
 
-* **Unit**: `ChatMessageBatchWriter`, `MessageStreamService`, secrets readiness gate, confirmation email content builder.
-* **Integration**: Identity sign-up/sign-in (SQLite-in-mem or Testcontainers PostgreSQL), `/chat/send` (CSRF pass/fail), `/chat/stream`.
+* **Unit**: batch writer service, secrets readiness gate, confirmation email content builder.
+* **Integration**: `/chat/send` (CSRF pass/fail), `/chat/stream`, Identity flows.
 * **Functional**: `WebApplicationFactory` that connects to SSE and posts a message.
 
 ---
@@ -240,86 +331,25 @@ public class ConfirmationEmailBuilder(IStringLocalizer<Contracts.Resources.Local
 
 ## 🗂️ Project structure (example)
 
-```
-src/
-  MVC_SSL_Chat/
-    Controllers/
-      ChatController.cs
-    Pages/ (Identity)
-    Services/
-      MessageStreamService.cs
-      ChatMessageBatchWriter.cs
-      Email/
-      Users/
-    Middleware/
-      SecretsReadinessGateMiddleware.cs
-    Hosted/
-      VaultSecretsLoadWorker.cs
-    Resources/
-      Contracts.Resources.Localization.resx
-    wwwroot/                # (add your static assets)
-tests/
-  Unit/
-  Integration/
-docker/
-  docker-compose.yml
-  Dockerfile
+```bash
+ASP.Net_Core_MVC_Chat_Test.sln
+MVC_SSL_Chat/            # Web app (MVC + Identity UI)
+Application/             # App services: streaming, sending, utilities
+Storage/                 # EF Core DbContext + migrations
+SecuritySupplements/     # Vault integration + readiness tracker
+Contracts/               # Interfaces + options + shared resources
+DomainModels/            # Domain entities (ChatMessage, ChatUser, ...)
+Email/                   # Email sender + DI wiring
 ```
 
 ---
 
 ## 🐳 Docker Compose (example)
 
-```yaml
-services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: YourStrongPass
-      POSTGRES_DB: ChatDb
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ChatDb"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
+This repo currently provides compose examples inline (not committed as files).
+If you want to run the web app itself inside Docker as well, you’ll need to add a `Dockerfile` and update compose accordingly.
 
-  vault:
-    image: hashicorp/vault:1.16
-    environment:
-      VAULT_DEV_ROOT_TOKEN_ID: "root"
-      VAULT_ADDR: "http://0.0.0.0:8200"
-    command: ["server", "-dev", "-dev-root-token-id=root", "-dev-listen-address=0.0.0.0:8200"]
-    ports:
-      - "8200:8200"
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8200/v1/sys/health" ]
-      interval: 10s
-      timeout: 3s
-      retries: 10
-
-  web:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    environment:
-      ASPNETCORE_URLS: "http://+:8080"
-      # Vault endpoint (non-secrets)
-      HASHICORP_VAULT_ADDRESS: "http://vault:8200"
-      HASHICORP_VAULT_MOUNTPOINT: "secret"
-      HASHICORP_VAULT_PATH: "myapp/config"
-      # Token ONLY for dev; never commit real tokens
-      HASHICORP_VAULT_TOKEN: "root"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      vault:
-        condition: service_healthy
-    ports:
-      - "5206:8080"
-```
+(Keeping the "deps only" compose above is usually enough for local dev.)
 
 ---
 
@@ -329,17 +359,10 @@ MIT (or your preferred license)
 
 ---
 
-## 🙌 Acknowledgements
-
-* ASP.NET Core team & docs
-* HashiCorp Vault (dev mode)
-* PostgreSQL & Npgsql
-
----
-
 👤 Author
 Sergey Korolkov
 [LinkedIn](https://www.linkedin.com/in/sergey-korolkov-518508a4/) • [GitHub](https://github.com/emailfansendtest-sketch)
+
 
 
 
