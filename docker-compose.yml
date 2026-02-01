@@ -1,0 +1,113 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: chat
+      POSTGRES_USER: chat
+      POSTGRES_PASSWORD: chatpw
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chat -d chat"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # Intentionally no host port mapping.
+    # If you really need host access, uncomment:
+    # ports:
+    #   - "5433:5432"
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP
+
+  vault:
+    image: hashicorp/vault:1.16
+    cap_add:
+      - IPC_LOCK
+    command: >
+      sh -ec "vault server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200"
+    ports:
+      - "8200:8200"
+    healthcheck:
+      test: ["CMD-SHELL", "VAULT_ADDR=http://127.0.0.1:8200 vault status >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  # One-shot seeding container. It exits after it successfully writes + reads back the secret.
+  vault-init:
+    image: hashicorp/vault:1.16
+    depends_on:
+      vault:
+        condition: service_healthy
+    environment:
+      VAULT_ADDR: "http://vault:8200"
+      VAULT_TOKEN: "root"
+    entrypoint:
+      - sh
+      - -euxc
+      - |
+          echo "Waiting for Vault...";
+          until vault status >/dev/null 2>&1; do sleep 1; done;
+
+          echo "Mounts:";
+          vault secrets list;
+
+          echo "Seeding secret/chatapp...";
+          vault kv put -mount=secret chatapp \
+            DatabaseConnection="Host=postgres;Port=5432;Database=chat;Username=chat;Password=chatpw" \
+            EmailSmtpHost="mailhog" \
+            EmailSmtpPort="1025" \
+            EmailAddress="no-reply@example.com" \
+            EmailPassword="dummy" \
+            EmailDisplayName="MVC Chat Demo";
+
+          echo "Read-back (must succeed):";
+          vault kv get -mount=secret chatapp;
+
+          echo "List keys (must include chatapp):";
+          vault kv list -mount=secret /;
+
+          echo "Vault initialized: secret/chatapp";
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      # Your repo previously used a lowercase file name "dockerfile".
+      # If yours is "Dockerfile", change the line below accordingly.
+      dockerfile: dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+      vault-init:
+        condition: service_completed_successfully
+      mailhog:
+        condition: service_started
+    environment:
+      # IMPORTANT: matches appsettings.Production.Docker.json
+      ASPNETCORE_ENVIRONMENT: "Production.Docker"
+
+      # Run HTTP in container
+      ASPNETCORE_URLS: "http://+:8080"
+
+      # Requires your Program.cs to conditionally call UseHttpsRedirection() based on this flag
+      HttpsRedirection__Enabled: "false"
+
+      # Vault credentials for non-Development mode
+      HashicorpVaultCredentialToken: "root"
+      HashicorpVaultCredentialAddress: "http://vault:8200"
+      HashicorpVaultCredentialMountPoint: "secret"
+      HashicorpVaultCredentialPath: "chatapp"
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
