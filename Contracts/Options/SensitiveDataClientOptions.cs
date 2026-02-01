@@ -8,8 +8,14 @@
         public const string ConfigKey = "SecretsLoader";
 
         /// <summary>
-        /// The time interval between the sensitive data accesses.
+        /// The time interval between attempts to access the sensitive data for the initial load.
         /// </summary>
-        public int ConsequentReadDelayMs { get; set; }
+        public int InitialReadIntervalMs { get; set; }
+
+        /// <summary>
+        /// The time interval between attempts to access the sensitive data for the refresh,
+        /// when zero - the data is not refreshed after the initial load.
+        /// </summary>
+        public int RefreshReadIntervalMs { get; set; }
     }
 }

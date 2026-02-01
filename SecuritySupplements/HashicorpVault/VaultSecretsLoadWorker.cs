@@ -6,8 +6,15 @@ using Microsoft.Extensions.Options;
 
 namespace SecuritySupplements.HashicorpVault
 {
+    /// <summary>
+    /// Background worker that loads sensitive configuration (DB/SMTP) from HashiCorp Vault.
+    /// It performs an initial load with retries until readiness is achieved and optionally
+    /// refreshes secrets periodically if <see cref="SensitiveDataClientOptions.RefreshReadIntervalMs"/> is configured.
+    /// </summary>
     internal class VaultSecretsLoadWorker : BackgroundService
     {
+        private const int DefaultInitialIntervalMs = 5_000;
+
         private readonly ILogger<VaultSecretsLoadWorker> _logger;
         private readonly IVaultClient _vaultDataLoader;
         private readonly ISecretsReadinessTracker _readinessTracker;
@@ -26,14 +33,25 @@ namespace SecuritySupplements.HashicorpVault
             _readinessTracker = readinessTracker;
             _credentialsReader = credentialsReader;
             _options = options.Value;
-
         }
 
+        /// <inheritdoc />
         protected override async Task ExecuteAsync( CancellationToken stoppingToken )
         {
-            _logger.LogInformation( "VaultSecretsLoadWorker started." );
+            var initialDelay = _options.InitialReadIntervalMs > 0 ?
+                TimeSpan.FromMilliseconds( _options.InitialReadIntervalMs ) :
+                TimeSpan.FromMilliseconds( DefaultInitialIntervalMs );
 
-            var delay = TimeSpan.FromMilliseconds( _options.ConsequentReadDelayMs );
+            TimeSpan? refreshDelay = _options.RefreshReadIntervalMs > 0 ?
+                TimeSpan.FromMilliseconds( _options.RefreshReadIntervalMs ) :
+                null;
+
+            _logger.LogInformation(
+                "VaultSecretsLoadWorker started. InitialInterval={InitialMs}ms, RefreshInterval={RefreshMs}ms.",
+                initialDelay.TotalMilliseconds,
+                refreshDelay?.TotalMilliseconds ?? 0 );
+
+            var delay = initialDelay;
 
             while( !stoppingToken.IsCancellationRequested )
             {
@@ -48,11 +66,27 @@ namespace SecuritySupplements.HashicorpVault
 
                 bool isLoaded = await TryLoadAsync( stoppingToken );
 
-                if( isLoaded && !_readinessTracker.IsReady )
+                if( isLoaded )
                 {
-                    _readinessTracker.SignalReady();
-                    _logger.LogInformation( "Initial Vault secrets load successful." );
-                    break;
+                    if( !_readinessTracker.IsReady )
+                    {
+                        _readinessTracker.SignalReady();
+                        _logger.LogInformation( "Initial Vault secrets load successful." );
+
+                        // If the refresh read time interval is 0 - then refresh is disabled, the worker is safe.
+                        if( refreshDelay == null )
+                        {
+                            _logger.LogInformation( "Vault secrets refresh is disabled (RefreshReadIntervalMs = 0)." );
+                            _logger.LogInformation( "VaultSecretsLoadWorker stopped." );
+                            break;
+                        }    
+
+                        delay = refreshDelay.Value;
+                    }
+                    else
+                    {
+                        _logger.LogInformation( "Vault secrets refresh successful." );
+                    }
                 }
 
                 if( stoppingToken.IsCancellationRequested )
@@ -60,7 +94,11 @@ namespace SecuritySupplements.HashicorpVault
                     break;
                 }
 
-                _logger.LogWarning( "Initial Vault load failed. Retrying in {Delay}ms.", delay.TotalMilliseconds );
+                if( !_readinessTracker.IsReady )
+                {
+                    _logger.LogWarning( "Initial Vault load failed. Retrying in {Delay}ms.", delay.TotalMilliseconds );
+                }
+
                 await Task.Delay( delay, stoppingToken );
             }
 
@@ -79,8 +117,12 @@ namespace SecuritySupplements.HashicorpVault
                     return false;
                 }
 
-                await _vaultDataLoader.AccessAsync( credentials! );
+                await _vaultDataLoader.LoadAndCacheSecretsAsync( credentials!, ct );
                 return true;
+            }
+            catch( OperationCanceledException ) when( ct.IsCancellationRequested )
+            {
+                // Expected during shutdown - no error logging is required
             }
             catch(Exception ex)
             {

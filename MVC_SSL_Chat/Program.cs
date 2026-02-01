@@ -16,6 +16,7 @@ internal class Program
         builder.Services.AddLocalization( options => options.ResourcesPath = "Resources" );
         builder.AddCustomAntiforgery();
 
+
         builder.AddCustomLogging();
 
         builder.AddCustomDependencies();
@@ -33,7 +34,14 @@ internal class Program
             app.UseHsts();
         }
 
-        app.UseHttpsRedirection();
+        // 
+        var httpsRedirectEnabled = builder.Configuration.GetValue<bool>( "HttpsRedirection:Enabled" );
+
+        if( httpsRedirectEnabled )
+        {
+            app.UseHttpsRedirection();
+        }
+
         app.UseStaticFiles();
 
         app.UseRouting();

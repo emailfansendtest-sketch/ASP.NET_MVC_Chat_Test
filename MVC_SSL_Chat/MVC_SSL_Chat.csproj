@@ -15,8 +15,20 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="NLog.Extensions.Logging" Version="5.5.0" />
-    <PackageReference Include="NLog.WindowsEventLog" Version="5.5.0" />
+    <!-- Serilog core + configuration binding -->
+    <PackageReference Include="Serilog" Version="4.3.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.0" />
+
+    <!-- Sinks + formatting (used by appsettings*.json) -->
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
+
+    <!-- Enrichers (used by appsettings.json Enrich section) -->
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageReference Include="Serilog.Enrichers.Process" Version="3.0.0" />
+    <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
   </ItemGroup>
 
   <ItemGroup>
