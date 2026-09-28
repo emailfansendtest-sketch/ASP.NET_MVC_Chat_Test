@@ -1,11 +1,6 @@
 ﻿using Application.Interfaces.User;
 using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Implementations.User
 {
@@ -19,6 +14,7 @@ namespace Application.Implementations.User
         }
 
         public ClaimsPrincipal Principal =>
-            _httpContextAccessor.HttpContext?.User!;
+            _httpContextAccessor.HttpContext?.User
+                ?? new ClaimsPrincipal();
     }
 }

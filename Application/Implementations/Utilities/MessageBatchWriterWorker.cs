@@ -4,57 +4,114 @@ using Contracts.Options;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Diagnostics;
+using Polly;
+using Polly.Retry;
 
 namespace Application.Implementations.Utilities
 {
     internal class MessageBatchWriterWorker : BackgroundService
     {
-        private readonly ILogger _logger;
-        private readonly IMessageWriterService _batchWriterService;
+        private static readonly TimeSpan MaxRetryDelay =
+            TimeSpan.FromSeconds(30);
+
+        private readonly ILogger<MessageBatchWriterWorker> _logger;
+        private readonly IMessageWriterService _messageWriterService;
         private readonly ISecretsReadinessTracker _secretsReadinessTracker;
-        private readonly PersistenceOptions _persistence;
-        public MessageBatchWriterWorker( ILogger<MessageBatchWriterWorker> logger,
-            IMessageWriterService batchWriterService,
+        private readonly PersistenceOptions _options;
+        private readonly ResiliencePipeline _flushRetryPipeline;
+
+        public MessageBatchWriterWorker(
+            ILogger<MessageBatchWriterWorker> logger,
+            IMessageWriterService messageWriterService,
             ISecretsReadinessTracker secretsReadinessTracker,
-            IOptions<PersistenceOptions> persistence )
+            IOptions<PersistenceOptions> options)
         {
             _logger = logger;
-            _batchWriterService = batchWriterService;
+            _messageWriterService = messageWriterService;
             _secretsReadinessTracker = secretsReadinessTracker;
-            _persistence = persistence.Value;
+            _options = options.Value;
+
+            _flushRetryPipeline = new ResiliencePipelineBuilder()
+                .AddRetry(
+                    new RetryStrategyOptions
+                    {
+                        ShouldHandle = new PredicateBuilder()
+                            .Handle<Exception>(
+                                ex => ex is not OperationCanceledException),
+
+                        MaxRetryAttempts = int.MaxValue,
+
+                        Delay = TimeSpan.FromMilliseconds(
+                            _options.FlushIntervalMs),
+
+                        BackoffType = DelayBackoffType.Exponential,
+
+                        UseJitter = true,
+
+                        MaxDelay = MaxRetryDelay,
+
+                        OnRetry = args =>
+                        {
+                            _logger.LogWarning(
+                                args.Outcome.Exception,
+                                "Failed to flush buffered messages. " +
+                                "Retry attempt {RetryAttempt} will run after {RetryDelay}.",
+                                args.AttemptNumber + 1,
+                                args.RetryDelay);
+
+                            return default;
+                        }
+                    })
+                .Build();
         }
 
-        protected override async Task ExecuteAsync( CancellationToken cancellationToken )
+        protected override async Task ExecuteAsync(
+            CancellationToken stoppingToken)
         {
-            _logger.LogInformation( 
-                "Buffered messages flush started, saving period in milliseconds:{0}.", _persistence.FlushIntervalMs );
+            _logger.LogInformation(
+                "Message batch writer worker started.");
 
-            var sw = Stopwatch.StartNew();
-
-            while(!cancellationToken.IsCancellationRequested)
+            try
             {
-                try
-                {
-                    await _secretsReadinessTracker.WaitUntilReadyAsync( cancellationToken );
+                await _secretsReadinessTracker
+                    .WaitUntilReadyAsync(stoppingToken);
 
-                    await _batchWriterService.FlushAsync();
+                _logger.LogInformation(
+                    "Required secrets are ready. " +
+                    "Message persistence worker is active.");
 
-                    // Waits for the time period obtained from the settings
-                    // before flushing the buffer
-                    await Task.Delay( TimeSpan.FromMilliseconds( _persistence.FlushIntervalMs ), cancellationToken );
-                    
-                    sw.Stop();
-                    _logger.LogInformation( 
-                        "Buffered messages flush finished, elapsed milliseconds:{0}.", sw.ElapsedMilliseconds );
-                }
-                catch( Exception ex )
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    sw.Stop();
-                    _logger.LogError( ex, 
-                        "Error while flushing buffered messages, elapsed milliseconds:{0}.", sw.ElapsedMilliseconds );
+                    await _flushRetryPipeline.ExecuteAsync(
+                        async cancellationToken =>
+                        {
+                            await _messageWriterService.FlushAsync();
+                        },
+                        stoppingToken);
+
+                    await Task.Delay(
+                        TimeSpan.FromMilliseconds(
+                            _options.FlushIntervalMs),
+                        stoppingToken);
                 }
-                sw.Restart();
+            }
+            catch (OperationCanceledException)
+                when (stoppingToken.IsCancellationRequested)
+            {
+                // Normal application shutdown.
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical(
+                    ex,
+                    "Message batch writer worker terminated unexpectedly.");
+
+                throw;
+            }
+            finally
+            {
+                _logger.LogInformation(
+                    "Message batch writer worker stopped.");
             }
         }
     }

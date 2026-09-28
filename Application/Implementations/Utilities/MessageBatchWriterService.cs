@@ -14,6 +14,7 @@ namespace Application.Implementations.Utilities
         private readonly Channel<ChatMessageDto> _channel;
         private readonly IDbService _dbService;
         private readonly MessageWriterOptions _options;
+        private readonly ConcurrentQueue<ChatMessageDto> _batch = new();
 
         /// <summary>
         /// The constructor.
@@ -46,24 +47,26 @@ namespace Application.Implementations.Utilities
         /// <inheritdoc />
         public async Task FlushAsync( )
         {
-            var batch = new ConcurrentQueue<ChatMessageDto>();
+            if( !_batch.IsEmpty )
+            {
+                await SaveMessagesAsync( _batch ); // Saving previous message chunk if the sending has failed.
+            }
 
             while( _channel.Reader.TryRead( out var msg ) )
             {
-                batch.Enqueue( msg );
+                _batch.Enqueue( msg );
 
-                if(batch.Count < _options.MessageBatchSize )
+                if( _batch.Count < _options.MessageBatchSize )
                 {
-                    continue; // The batch size did not reach the maximum.
+                    continue; // The _batch size did not reach the maximum.
                 }
 
-                await SaveMessagesAsync( batch );
-                batch.Clear();
+                await SaveMessagesAsync( _batch );
             }
 
-            if(batch.Count > 0)
+            if( !_batch.IsEmpty )
             {
-                await SaveMessagesAsync( batch ); // Saving last message chunk.
+                await SaveMessagesAsync( _batch ); // Saving last message chunk.
             }
         }
 
@@ -78,6 +81,7 @@ namespace Application.Implementations.Utilities
             await _dbService.SaveChangesAsync( 
                 messages.Select( EntitiesMappingExtensions.ToDomain ) 
                 );
+            _batch.Clear();
         }
     }
 }
