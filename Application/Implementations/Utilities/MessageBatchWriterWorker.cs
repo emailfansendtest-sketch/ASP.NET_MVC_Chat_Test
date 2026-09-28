@@ -85,7 +85,7 @@ namespace Application.Implementations.Utilities
                     await _flushRetryPipeline.ExecuteAsync(
                         async cancellationToken =>
                         {
-                            await _messageWriterService.FlushAsync();
+                            await _messageWriterService.ProcessPendingMessagesAsync();
                         },
                         stoppingToken);
 

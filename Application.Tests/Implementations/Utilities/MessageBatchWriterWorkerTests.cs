@@ -31,7 +31,7 @@ public class MessageBatchWriterWorkerTests
 
         writer
             .InSequence( sequence )
-            .Setup( x => x.FlushAsync() )
+            .Setup( x => x.ProcessPendingMessagesAsync() )
             .Callback( cts.Cancel )
             .Returns( Task.CompletedTask );
 
@@ -53,7 +53,7 @@ public class MessageBatchWriterWorkerTests
             Times.Once );
 
         writer.Verify(
-            x => x.FlushAsync(),
+            x => x.ProcessPendingMessagesAsync(),
             Times.Once );
     }
 

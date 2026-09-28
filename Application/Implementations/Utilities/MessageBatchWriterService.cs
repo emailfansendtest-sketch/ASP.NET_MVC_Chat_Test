@@ -45,11 +45,11 @@ namespace Application.Implementations.Utilities
         }
 
         /// <inheritdoc />
-        public async Task FlushAsync( )
+        public async Task ProcessPendingMessagesAsync( )
         {
             if( !_batch.IsEmpty )
             {
-                await SaveMessagesAsync( _batch ); // Saving previous message chunk if the sending has failed.
+                await FlushAsync( _batch ); // Saving previous message chunk if the sending has failed.
             }
 
             while( _channel.Reader.TryRead( out var msg ) )
@@ -61,12 +61,12 @@ namespace Application.Implementations.Utilities
                     continue; // The _batch size did not reach the maximum.
                 }
 
-                await SaveMessagesAsync( _batch );
+                await FlushAsync( _batch );
             }
 
             if( !_batch.IsEmpty )
             {
-                await SaveMessagesAsync( _batch ); // Saving last message chunk.
+                await FlushAsync( _batch ); // Saving last message chunk.
             }
         }
 
@@ -76,7 +76,7 @@ namespace Application.Implementations.Utilities
             _channel.Writer.Complete();
         }
 
-        private async Task SaveMessagesAsync( IEnumerable<ChatMessageDto> messages )
+        private async Task FlushAsync( IEnumerable<ChatMessageDto> messages )
         {
             await _dbService.SaveChangesAsync( 
                 messages.Select( EntitiesMappingExtensions.ToDomain ) 

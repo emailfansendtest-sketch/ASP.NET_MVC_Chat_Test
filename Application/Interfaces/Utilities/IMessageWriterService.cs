@@ -19,6 +19,6 @@ namespace Application.Interfaces.Utilities
         /// Persists buffered messages and clears the buffer.
         /// Implementations should be a no-op if the buffer is empty.
         /// </summary>
-        Task FlushAsync();
+        Task ProcessPendingMessagesAsync();
     }
 }

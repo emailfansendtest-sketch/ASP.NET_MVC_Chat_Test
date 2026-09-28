@@ -21,7 +21,7 @@ public class MessageBatchWriterServiceTests
             db,
             batchSize: 2 );
 
-        await sut.FlushAsync();
+        await sut.ProcessPendingMessagesAsync();
 
         db.Verify(
             x => x.SaveChangesAsync(
@@ -56,7 +56,7 @@ public class MessageBatchWriterServiceTests
                 CancellationToken.None );
         }
 
-        await sut.FlushAsync();
+        await sut.ProcessPendingMessagesAsync();
 
         Assert.That( savedBatches, Has.Count.EqualTo( 3 ) );
 
@@ -111,9 +111,9 @@ public class MessageBatchWriterServiceTests
             CancellationToken.None );
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            sut.FlushAsync );
+            sut.ProcessPendingMessagesAsync );
 
-        await sut.FlushAsync();
+        await sut.ProcessPendingMessagesAsync();
 
         Assert.That( calls, Has.Count.EqualTo( 2 ) );
 
@@ -163,14 +163,14 @@ public class MessageBatchWriterServiceTests
             CancellationToken.None );
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            sut.FlushAsync );
+            sut.ProcessPendingMessagesAsync );
 
         // Arrives after the failed batch.
         await sut.AppendAsync(
             CreateMessage( 3 ),
             CancellationToken.None );
 
-        await sut.FlushAsync();
+        await sut.ProcessPendingMessagesAsync();
 
         Assert.That( calls, Has.Count.EqualTo( 3 ) );
 
@@ -196,10 +196,10 @@ public class MessageBatchWriterServiceTests
             CreateMessage( 1 ),
             CancellationToken.None );
 
-        await sut.FlushAsync();
+        await sut.ProcessPendingMessagesAsync();
 
         // Empty second flush.
-        await sut.FlushAsync();
+        await sut.ProcessPendingMessagesAsync();
 
         db.Verify(
             x => x.SaveChangesAsync(
